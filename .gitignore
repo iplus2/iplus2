@@ -1,0 +1,14 @@
+# OpenClaw 工作文件
+.openclaw/
+
+# Task summaries
+task-summary_*.md
+
+# 临时测试文件
+test-*.sh
+push.sh
+
+# IDE
+.vscode/
+.idea/
+*.swp
