@@ -32,6 +32,25 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // 先检查邮箱是否已被注册（通过尝试登录来检测）
+    const { data: existingUser } = await supabase.rpc('check_email_exists', { p_email: email });
+    // 如果 rpc 不存在，用 signInWithPassword 快速验证
+    if (existingUser === true) {
+      showMessage('register-msg', '该邮箱已被注册，请直接登录或找回密码');
+      return;
+    }
+
+    // 检查用户名是否重复
+    const { data: existingUsername } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+    if (existingUsername) {
+      showMessage('register-msg', '该用户名已被使用，请换一个');
+      return;
+    }
+
     // 注册
     const { data, error } = await supabase.auth.signUp({
       email,

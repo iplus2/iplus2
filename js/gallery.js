@@ -3,18 +3,11 @@
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // 检查登录状态
-  const session = await requireAuth();
+  // 检查登录状态（header-auth.js 会处理 header，这里只负责画廊功能）
+  const { data: { session } } = await supabase.auth.getSession();
   if (!session) return;
 
   const user = session.user;
-  const username = user.user_metadata?.username || user.email;
-
-  // 显示用户名
-  document.getElementById('user-name').textContent = username;
-
-  // 登出按钮
-  document.getElementById('btn-logout').addEventListener('click', logout);
 
   // 上传区域
   const uploadArea = document.getElementById('upload-area');

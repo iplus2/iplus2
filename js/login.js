@@ -17,7 +17,16 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    const rememberMe = document.getElementById('remember-me')?.checked;
+
     const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: {
+        // 记住我：设置较长的 cookie 过期时间（30天）
+        ...(rememberMe ? { persistSession: true } : {})
+      }
+    });
       email,
       password
     });
