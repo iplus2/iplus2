@@ -12,3 +12,5 @@ push.sh
 .vscode/
 .idea/
 *.swp
+# 私有记忆文件
+memory/

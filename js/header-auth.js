@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       e.preventDefault();
       await supabase.auth.signOut();
       // 跳回首页
-      window.location.href = 'home.html';
+      window.location.href = 'index.html';
     });
 
   } else {

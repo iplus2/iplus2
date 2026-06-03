@@ -28,9 +28,6 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 20px;
 }
 
@@ -201,6 +198,14 @@ body {
 }
 
 /* ---- Auth Pages (Login / Register) ---- */
+
+/* 页面内容居中容器（登录/注册/改密等） */
+.page-center {
+  min-height: calc(100vh - 60px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .auth-container {
   width: 100%;

@@ -8,7 +8,7 @@
 async function requireAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
-    window.location.href = 'index.html';
+    window.location.href = 'login.html';
     return null;
   }
   return session;

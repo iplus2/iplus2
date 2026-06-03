@@ -27,9 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ...(rememberMe ? { persistSession: true } : {})
       }
     });
-      email,
-      password
-    });
 
     if (error) {
       showMessage('login-msg', error.message === 'Invalid login credentials'
@@ -38,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 登录成功，跳转到图片画廊
-    window.location.href = 'gallery.html';
+    // 登录成功，跳转到主页
+    window.location.href = 'index.html';
   });
 });
