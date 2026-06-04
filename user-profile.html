@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>用户中心 - iplus2的空间</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .profile-container {
+      max-width: 500px;
+      margin: 40px auto;
+      padding: 30px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+    .profile-title {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+    .profile-info {
+      margin-bottom: 30px;
+    }
+    .profile-info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .profile-info-item:last-child {
+      border-bottom: none;
+    }
+    .profile-label {
+      color: #666;
+      font-size: 14px;
+    }
+    .profile-value {
+      font-weight: 500;
+      color: #333;
+    }
+    .profile-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #666;
+      text-decoration: none;
+    }
+    .back-link:hover {
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="site-header">
+    <div class="header-inner">
+      <h1 class="header-logo">iplus2的空间</h1>
+      <div class="header-actions">
+        <!-- 未登录状态 -->
+        <div id="header-auth-area" class="header-auth-area" style="display:none;">
+          <button id="header-auth-btn" class="btn btn-primary btn-sm" onclick="window.location.href='login.html'">
+            登录 / 注册
+          </button>
+        </div>
+        <!-- 已登录状态 -->
+        <div id="header-user-dropdown" class="header-user-dropdown" style="display:none;">
+          <div class="user-trigger">
+            <span id="header-user-name" class="header-user-name">用户名</span>
+            <span class="dropdown-arrow">▼</span>
+          </div>
+          <div id="dropdown-menu" class="dropdown-menu">
+            <div id="dropdown-user-name" class="dropdown-user-name">用户名</div>
+            <button id="btn-user-center" class="dropdown-item">用户中心</button>
+            <button id="btn-logout" class="dropdown-item dropdown-item-danger">退出登录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 用户中心内容 -->
+  <div class="page-center">
+    <div class="profile-container">
+      <h2 class="profile-title">👤 用户中心</h2>
+      
+      <div class="profile-info">
+        <div class="profile-info-item">
+          <span class="profile-label">邮箱</span>
+          <span id="user-email" class="profile-value">加载中...</span>
+        </div>
+        <div class="profile-info-item">
+          <span class="profile-label">用户名</span>
+          <span id="user-username" class="profile-value">加载中...</span>
+        </div>
+      </div>
+
+      <div class="profile-actions">
+        <button id="btn-change-name" class="btn btn-secondary">✏️ 修改用户名</button>
+        <button id="btn-change-pwd" class="btn btn-secondary">🔐 修改密码</button>
+      </div>
+
+      <a href="index.html" class="back-link">← 返回主页</a>
+    </div>
+  </div>
+
+  <script src="js/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/header-auth.js"></script>
+  <script src="js/auth.js"></script>
+  <script>
+    // ============================================
+    // 用户中心页面逻辑
+    // ============================================
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+      // 检查登录状态
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        window.location.href = 'login.html';
+        return;
+      }
+
+      const user = session.user;
+      document.getElementById('user-email').textContent = user.email;
+
+      // 加载用户名
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+      if (profile) {
+        document.getElementById('user-username').textContent = profile.username;
+      }
+
+      // 修改用户名
+      document.getElementById('btn-change-name').addEventListener('click', async () => {
+        const currentName = profile?.username || user.email.split('@')[0];
+        const newName = prompt('请输入新用户名：', currentName);
+        if (!newName || !newName.trim() || newName.trim() === currentName) return;
+
+        // 检查用户名是否被占用
+        const { data: conflict } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', newName.trim())
+          .neq('id', user.id)
+          .maybeSingle();
+
+        if (conflict) {
+          alert('该用户名已被使用，请换一个');
+          return;
+        }
+
+        const { error } = await supabase
+          .from('profiles')
+          .update({ username: newName.trim() })
+          .eq('id', user.id);
+
+        if (error) {
+          alert(`更新失败: ${error.message}`);
+        } else {
+          await supabase.auth.updateUser({ data: { username: newName.trim() } });
+          document.getElementById('user-username').textContent = newName.trim();
+          alert('用户名已更新！');
+        }
+      });
+
+      // 修改密码
+      document.getElementById('btn-change-pwd').addEventListener('click', () => {
+        window.location.href = 'change-password.html';
+      });
+    });
+  </script>
+</body>
+</html>

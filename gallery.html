@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>图片画廊</title>
+  <title>复平面</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -24,8 +24,7 @@
           </div>
           <div id="dropdown-menu" class="dropdown-menu">
             <div id="dropdown-user-name" class="dropdown-user-name">用户名</div>
-            <button id="btn-rename" class="dropdown-item">修改用户名</button>
-            <button id="btn-change-pwd" class="dropdown-item">修改密码</button>
+            <button id="btn-user-center" class="dropdown-item">用户中心</button>
             <button id="btn-logout" class="dropdown-item dropdown-item-danger">退出登录</button>
           </div>
         </div>
@@ -33,23 +32,34 @@
     </div>
   </header>
 
-  <!-- 画廊内容 -->
+  <!-- 复平面内容 -->
   <main class="gallery-container">
-    <!-- 上传区域 -->
-    <div class="upload-section">
-      <h2>上传图片</h2>
-      <div id="upload-msg" class="message" style="display:none;"></div>
-      <div id="upload-area">
-        <div class="upload-icon">📁</div>
-        <p>点击或拖拽图片到此处上传</p>
+    <!-- 发布区 -->
+    <div class="post-compose" id="post-compose" style="display:none;">
+      <h2>📮 发布到复平面</h2>
+      <div id="compose-msg" class="message" style="display:none;"></div>
+      <textarea id="post-content" placeholder="说点什么..." maxlength="2000"></textarea>
+      <div class="attach-area" id="attach-area">
+        <div class="attach-preview" id="attach-preview" style="display:none;">
+          <span id="attach-name"></span>
+          <button type="button" id="attach-remove">✕</button>
+        </div>
+        <div class="attach-placeholder" id="attach-placeholder">
+          <span>📎</span>
+          <span>添加附件（图片/音频/文件，≤10MB）</span>
+        </div>
+        <input type="file" id="file-input" />
       </div>
-      <input type="file" id="file-input" accept="image/*" />
+      <button id="btn-post" class="btn btn-primary">发布</button>
+    </div>
+    <div class="post-compose-tip" id="post-compose-tip">
+      <p>🔒 <a href="login.html">登录</a> 后可以在复平面发布内容</p>
     </div>
 
-    <!-- 图片列表 -->
+    <!-- 帖子列表 -->
     <div class="gallery-grid">
-      <h2>所有图片</h2>
-      <div id="gallery">
+      <h2>🌌 复平面</h2>
+      <div id="post-list">
         <p class="loading">加载中...</p>
       </div>
       <p class="auth-link" style="margin-top:30px;">
@@ -60,7 +70,6 @@
 
   <script src="js/supabase.min.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/auth.js"></script>
   <script src="js/gallery.js"></script>
   <script src="js/header-auth.js"></script>
 </body>

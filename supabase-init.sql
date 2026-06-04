@@ -30,13 +30,16 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
--- 2. 图片记录表
-CREATE TABLE IF NOT EXISTS images (
+-- 2. 帖子表（复平面）
+DROP TABLE IF EXISTS posts;
+CREATE TABLE IF NOT EXISTS posts (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  file_name TEXT NOT NULL,
-  file_url TEXT NOT NULL,
-  storage_path TEXT NOT NULL,
+  content TEXT,
+  file_name TEXT,
+  file_url TEXT,
+  file_type TEXT,
+  storage_path TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -47,14 +50,14 @@ ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (true);
 CREATE POLICY "profiles_update" ON profiles FOR UPDATE USING (auth.uid() = id);
 
--- images: 登录用户可读所有，只能操作自己的
-ALTER TABLE images ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "images_select" ON images FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "images_insert" ON images FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "images_delete" ON images FOR DELETE USING (auth.uid() = user_id);
+-- posts: 所有人可读，登录用户可发布/删除自己的
+ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "posts_select" ON posts FOR SELECT USING (true);
+CREATE POLICY "posts_insert" ON posts FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "posts_delete" ON posts FOR DELETE USING (auth.uid() = user_id);
 
 -- 4. Storage Bucket
--- 在 Supabase Dashboard → Storage 中手动创建名为 "images" 的 bucket
+-- 在 Supabase Dashboard → Storage 中手动创建名为 "attachments" 的 bucket
 -- 并设置该 bucket 为 Public（公开读取）
 -- 然后在 Storage Policies 中添加:
 --   INSERT: auth.uid() IS NOT NULL (允许登录用户上传)

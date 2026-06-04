@@ -11,12 +11,27 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (session) {
     const user = session.user;
-    const username = user.user_metadata?.username || user.email.split('@')[0];
+
+    // 从 profiles 表读取用户名（权威来源），fallback 到 auth metadata → 邮箱前缀
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', user.id)
+      .single();
+
+    let username = profile?.username
+      || user.user_metadata?.username
+      || user.email.split('@')[0];
+
+    // 同步 auth metadata，避免下次登录仍 fallback 到邮箱前缀
+    if (!user.user_metadata?.username && profile?.username) {
+      await supabase.auth.updateUser({ data: { username: profile.username } });
+    }
 
     authArea.style.display = 'none';
     userDropdown.style.display = 'flex';
     headerUserName.textContent = username;
-    dropdownUserName.textContent = username;
+    if (dropdownUserName) dropdownUserName.textContent = username;
 
     // 展开/收起下拉菜单
     userDropdown.addEventListener('click', (e) => {
@@ -27,58 +42,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // 点击空白关闭菜单
     document.addEventListener('click', () => {
-      document.getElementById('dropdown-menu').style.display = 'none';
-    });
-
-    // 修改用户名
-    document.getElementById('btn-rename').addEventListener('click', async () => {
       const menu = document.getElementById('dropdown-menu');
-      menu.style.display = 'none';
-
-      const newName = prompt('请输入新用户名：', username);
-      if (!newName || newName.trim() === username || !newName.trim()) return;
-
-      const { data: conflict } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', newName.trim())
-        .neq('id', session.user.id)
-        .maybeSingle();
-
-      if (conflict) {
-        alert('该用户名已被使用，请换一个');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('profiles')
-        .update({ username: newName.trim() })
-        .eq('id', session.user.id);
-
-      if (error) {
-        alert(`更新失败: ${error.message}`);
-      } else {
-        await supabase.auth.updateUser({ data: { username: newName.trim() } });
-        headerUserName.textContent = newName.trim();
-        dropdownUserName.textContent = newName.trim();
-        alert('用户名已更新！');
-      }
+      if (menu) menu.style.display = 'none';
     });
 
-    // 修改密码
-    document.getElementById('btn-change-pwd').addEventListener('click', (e) => {
-      e.preventDefault();
-      document.getElementById('dropdown-menu').style.display = 'none';
-      window.location.href = 'change-password.html';
-    });
+    // 用户中心
+    const btnUserCenter = document.getElementById('btn-user-center');
+    if (btnUserCenter) {
+      btnUserCenter.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('dropdown-menu').style.display = 'none';
+        window.location.href = 'user-profile.html';
+      });
+    }
 
     // 退出登录
-    document.getElementById('btn-logout').addEventListener('click', async (e) => {
-      e.preventDefault();
-      await supabase.auth.signOut();
-      // 跳回首页
-      window.location.href = 'index.html';
-    });
+    const btnLogout = document.getElementById('btn-logout');
+    if (btnLogout) {
+      btnLogout.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = 'index.html';
+      });
+    }
 
   } else {
     authArea.style.display = 'flex';

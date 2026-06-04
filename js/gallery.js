@@ -1,140 +1,171 @@
 // ============================================
-// 图片画廊页面逻辑
+// 复平面页面逻辑
 // ============================================
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 let currentUser = null;
+let selectedFile = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // 检查登录状态
   const { data: { session } } = await supabase.auth.getSession();
   currentUser = session?.user || null;
 
-  // 根据登录状态控制上传区域的显示
-  const uploadSection = document.querySelector('.upload-section');
+  // 根据登录状态控制发布区
+  const compose = document.getElementById('post-compose');
+  const composeTip = document.getElementById('post-compose-tip');
   if (currentUser) {
-    // 已登录：显示上传功能
-    uploadSection.style.display = '';
-    initUpload();
+    compose.style.display = '';
+    composeTip.style.display = 'none';
   } else {
-    // 未登录：隐藏上传区域，显示提示
-    uploadSection.innerHTML = '<p class="message" style="text-align:center;color:#666;">🔒 登录后可以上传图片 <a href="login.html">去登录</a></p>';
+    compose.style.display = 'none';
+    composeTip.style.display = '';
   }
 
-  // 无论是否登录，都加载图片列表
-  loadImages();
+  // 初始化发布功能
+  initCompose();
+  // 加载帖子列表
+  loadPosts();
 
-  // 初始化上传功能（仅已登录时调用）
-  function initUpload() {
-    if (!currentUser) return;
-
-    const uploadArea = document.getElementById('upload-area');
+  // ============================================
+  // 发布功能
+  // ============================================
+  function initCompose() {
     const fileInput = document.getElementById('file-input');
-    const uploadMsg = 'upload-msg';
+    const attachArea = document.getElementById('attach-area');
+    const attachPreview = document.getElementById('attach-preview');
+    const attachPlaceholder = document.getElementById('attach-placeholder');
+    const attachName = document.getElementById('attach-name');
+    const attachRemove = document.getElementById('attach-remove');
+    const btnPost = document.getElementById('btn-post');
 
-    // 点击上传区域触发文件选择
-    uploadArea.addEventListener('click', () => fileInput.click());
-
-    // 拖拽上传
-    uploadArea.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      uploadArea.classList.add('drag-over');
-    });
-    uploadArea.addEventListener('dragleave', () => {
-      uploadArea.classList.remove('drag-over');
-    });
-    uploadArea.addEventListener('drop', (e) => {
-      e.preventDefault();
-      uploadArea.classList.remove('drag-over');
-      const files = e.dataTransfer.files;
-      if (files.length > 0) handleUpload(files[0]);
+    // 点击附件区触发文件选择
+    attachArea.addEventListener('click', (e) => {
+      if (e.target === attachRemove || e.target === attachRemove.parentElement) return;
+      fileInput.click();
     });
 
-    // 选择文件后上传
+    // 选择文件
     fileInput.addEventListener('change', () => {
-      if (fileInput.files.length > 0) {
-        handleUpload(fileInput.files[0]);
-        fileInput.value = ''; // 重置，允许重复上传同一文件
-      }
+      if (!fileInput.files.length) return;
+      handleFileSelect(fileInput.files[0]);
+      fileInput.value = '';
     });
 
-    // 上传处理
-    async function handleUpload(file) {
-      // 校验文件类型
-      if (!file.type.startsWith('image/')) {
-        showMessage(uploadMsg, '只能上传图片文件');
+    function handleFileSelect(file) {
+      if (file.size > MAX_FILE_SIZE) {
+        showMsg('compose-msg', `文件超过 10MB 限制（当前 ${(file.size / 1024 / 1024).toFixed(1)}MB）`, 'error');
         return;
       }
-      // 校验文件大小（Supabase 免费版限制 50MB）
-      if (file.size > 50 * 1024 * 1024) {
-        showMessage(uploadMsg, '文件大小不能超过 50MB');
+      selectedFile = file;
+      attachName.textContent = file.name + ` (${(file.size / 1024).toFixed(0)}KB)`;
+      attachPreview.style.display = '';
+      attachPlaceholder.style.display = 'none';
+    }
+
+    // 移除已选附件
+    attachRemove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedFile = null;
+      attachPreview.style.display = 'none';
+      attachPlaceholder.style.display = '';
+    });
+
+    // 发布
+    btnPost.addEventListener('click', async () => {
+      const content = document.getElementById('post-content').value.trim();
+
+      if (!content && !selectedFile) {
+        showMsg('compose-msg', '请输入内容或添加附件', 'error');
         return;
       }
 
-      showMessage(uploadMsg, '上传中...', 'info');
+      btnPost.disabled = true;
+      btnPost.textContent = '发布中...';
+      showMsg('compose-msg', '', '');
 
-      // 生成唯一文件名: userId_timestamp_originalName
-      const ext = file.name.split('.').pop();
-      const fileName = `${currentUser.id}_${Date.now()}.${ext}`;
-      const filePath = `${currentUser.id}/${fileName}`;
+      let fileUrl = null, fileName = null, fileType = null, storagePath = null;
 
-      // 上传到 Supabase Storage
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('images')
-        .upload(filePath, file);
+      // 上传附件（如果有）
+      if (selectedFile) {
+        const ext = selectedFile.name.split('.').pop();
+        const storedName = `${currentUser.id}_${Date.now()}.${ext}`;
+        storagePath = `${currentUser.id}/${storedName}`;
 
-      if (uploadError) {
-        showMessage(uploadMsg, `上传失败: ${uploadError.message}`);
-        return;
+        const { error: uploadError } = await supabase.storage
+          .from('attachments')
+          .upload(storagePath, selectedFile);
+
+        if (uploadError) {
+          showMsg('compose-msg', `上传失败: ${uploadError.message}`, 'error');
+          btnPost.disabled = false;
+          btnPost.textContent = '发布';
+          return;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('attachments')
+          .getPublicUrl(storagePath);
+
+        fileUrl = urlData.publicUrl;
+        fileName = selectedFile.name;
+        fileType = selectedFile.type;
       }
 
-      // 获取公开 URL
-      const { data: urlData } = supabase.storage
-        .from('images')
-        .getPublicUrl(filePath);
-
-      // 写入 images 表
+      // 写入数据库
       const { error: dbError } = await supabase
-        .from('images')
+        .from('posts')
         .insert({
           user_id: currentUser.id,
-          file_name: file.name,
-          file_url: urlData.publicUrl,
-          storage_path: filePath
+          content: content,
+          file_name: fileName,
+          file_url: fileUrl,
+          file_type: fileType,
+          storage_path: storagePath
         });
 
       if (dbError) {
-        showMessage(uploadMsg, `保存记录失败: ${dbError.message}`);
+        showMsg('compose-msg', `发布失败: ${dbError.message}`, 'error');
+        btnPost.disabled = false;
+        btnPost.textContent = '发布';
         return;
       }
 
-      showMessage(uploadMsg, '上传成功！', 'success');
-      loadImages(); // 刷新画廊
-    }
+      // 重置表单
+      document.getElementById('post-content').value = '';
+      selectedFile = null;
+      attachPreview.style.display = 'none';
+      attachPlaceholder.style.display = '';
+      showMsg('compose-msg', '发布成功！', 'success');
+      btnPost.disabled = false;
+      btnPost.textContent = '发布';
+      loadPosts();
+    });
   }
 
-  // 加载所有图片
-  async function loadImages() {
-    const gallery = document.getElementById('gallery');
-    gallery.innerHTML = '<p class="loading">加载中...</p>';
+  // ============================================
+  // 加载帖子列表
+  // ============================================
+  async function loadPosts() {
+    const list = document.getElementById('post-list');
+    list.innerHTML = '<p class="loading">加载中...</p>';
 
-    // 先查所有图片
-    const { data: images, error } = await supabase
-      .from('images')
-      .select('id, file_name, file_url, user_id, created_at')
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select('id, user_id, content, file_name, file_url, file_type, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
-      gallery.innerHTML = `<p class="empty">加载失败: ${error.message}</p>`;
+      list.innerHTML = `<p class="empty">加载失败: ${error.message}</p>`;
       return;
     }
 
-    if (!images || images.length === 0) {
-      gallery.innerHTML = '<p class="empty">还没有图片，快来上传第一张吧！</p>';
+    if (!posts || posts.length === 0) {
+      list.innerHTML = '<p class="empty">复平面空空如也，来发布第一条吧！</p>';
       return;
     }
 
-    // 再查所有相关用户信息（根据 user_id 列表去重）
-    const userIds = [...new Set(images.map(img => img.user_id))];
+    // 获取用户信息
+    const userIds = [...new Set(posts.map(p => p.user_id))];
     const { data: profiles } = await supabase
       .from('profiles')
       .select('id, username')
@@ -143,15 +174,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     const profileMap = {};
     (profiles || []).forEach(p => { profileMap[p.id] = p.username; });
 
-    gallery.innerHTML = images.map(img => `
-      <div class="image-card">
-        <img src="${img.file_url}" alt="${img.file_name}" loading="lazy" />
-        <div class="image-info">
-          <span class="image-name">${img.file_name}</span>
-          <span class="image-user">${profileMap[img.user_id] || '未知用户'}</span>
-          <span class="image-time">${new Date(img.created_at).toLocaleString('zh-CN')}</span>
+    list.innerHTML = posts.map(post => {
+      const isOwner = currentUser && post.user_id === currentUser.id;
+      const username = profileMap[post.user_id] || '未知用户';
+      const time = new Date(post.created_at).toLocaleString('zh-CN');
+
+      let fileHtml = '';
+      if (post.file_url) {
+        const isImage = post.file_type && post.file_type.startsWith('image/');
+        const icon = isImage ? '🖼️' : '📎';
+        if (isImage) {
+          fileHtml = `<a href="${post.file_url}" target="_blank" class="post-file post-file-img">
+            <img src="${post.file_url}" alt="${post.file_name}" />
+          </a>`;
+        } else {
+          fileHtml = `<a href="${post.file_url}" download="${post.file_name}" class="post-file post-file-other">
+            ${icon} ${post.file_name}
+          </a>`;
+        }
+      }
+
+      return `
+      <div class="post-card">
+        <div class="post-header">
+          <span class="post-user">${username}</span>
+          <span class="post-time">${time}</span>
+          ${isOwner ? `<button class="btn-delete-post" onclick="deletePost('${post.id}', '${post.storage_path}', this)">🗑️</button>` : ''}
         </div>
-      </div>
-    `).join('');
+        ${post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : ''}
+        ${fileHtml ? `<div class="post-files">${fileHtml}</div>` : ''}
+      </div>`;
+    }).join('');
   }
 });
+
+// ============================================
+// 删除帖子
+// ============================================
+window.deletePost = async function(id, storagePath, btn) {
+  if (!confirm('确定要删除这条内容吗？')) return;
+
+  const card = btn.closest('.post-card');
+  card.style.opacity = '0.5';
+  btn.disabled = true;
+
+  // 删除存储文件（如果有）
+  if (storagePath) {
+    await supabase.storage.from('attachments').remove([storagePath]);
+  }
+
+  // 删除数据库记录
+  const { error } = await supabase
+    .from('posts')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    alert(`删除失败: ${error.message}`);
+    card.style.opacity = '';
+    btn.disabled = false;
+    return;
+  }
+
+  card.remove();
+  const list = document.getElementById('post-list');
+  if (!list.querySelector('.post-card')) {
+    list.innerHTML = '<p class="empty">复平面空空如也，来发布第一条吧！</p>';
+  }
+};
+
+// ============================================
+// 工具函数
+// ============================================
+function showMsg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'message';
+  if (type) el.classList.add(type);
+  el.style.display = text ? '' : 'none';
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
