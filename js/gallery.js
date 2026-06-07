@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function handleFileSelect(file) {
       if (file.size > MAX_FILE_SIZE) {
-        showMsg('compose-msg', `文件超过 10MB 限制（当前 ${(file.size / 1024 / 1024).toFixed(1)}MB）`, 'error');
+        showMsg('compose-msg', `文件超过 10MB 限制(当前 ${(file.size / 1024 / 1024).toFixed(1)}MB)`, 'error');
         return;
       }
       selectedFile = file;
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       let fileUrl = null, fileName = null, fileType = null, storagePath = null;
 
-      // 上传附件（如果有）
+      // 上传附件(如果有)
       if (selectedFile) {
         const ext = selectedFile.name.split('.').pop();
         const storedName = `${currentUser.id}_${Date.now()}.${ext}`;
@@ -135,7 +135,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       selectedFile = null;
       attachPreview.style.display = 'none';
       attachPlaceholder.style.display = '';
-      showMsg('compose-msg', '发布成功！', 'success');
+      showMsg('compose-msg', '发布成功!', 'success');
       btnPost.disabled = false;
       btnPost.textContent = '发布';
       loadPosts();
@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const { data: posts, error } = await supabase
       .from('posts')
-      .select('id, user_id, content, file_name, file_url, file_type, created_at')
+      .select('id, user_id, content, file_name, file_url, file_type, storage_path, created_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     if (!posts || posts.length === 0) {
-      list.innerHTML = '<p class="empty">复平面空空如也，来发布第一条吧！</p>';
+      list.innerHTML = '<p class="empty">复平面空空如也,来发布第一条吧!</p>';
       return;
     }
 
@@ -199,7 +199,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <div class="post-header">
           <span class="post-user">${username}</span>
           <span class="post-time">${time}</span>
-          ${isOwner ? `<button class="btn-delete-post" onclick="deletePost('${post.id}', '${post.storage_path}', this)">🗑️</button>` : ''}
+          ${isOwner ? `<button class="btn-delete-post" onclick="deletePost('${post.id}', ${post.storage_path ? `'${post.storage_path}'` : 'null'}, this)">🗑️</button>` : ''}
         </div>
         ${post.content ? `<div class="post-content">${escapeHtml(post.content)}</div>` : ''}
         ${fileHtml ? `<div class="post-files">${fileHtml}</div>` : ''}
@@ -218,9 +218,32 @@ window.deletePost = async function(id, storagePath, btn) {
   card.style.opacity = '0.5';
   btn.disabled = true;
 
+  console.log('[deletePost] 开始删除', { id, storagePath });
+
   // 删除存储文件（如果有）
-  if (storagePath) {
-    await supabase.storage.from('attachments').remove([storagePath]);
+  if (storagePath && storagePath !== 'null') {
+    console.log('[deletePost] 尝试删除 Storage 文件:', storagePath);
+    const { data, error: storageError } = await supabase.storage
+      .from('attachments')
+      .remove([storagePath]);
+
+    console.log('[deletePost] Storage remove 返回:', { data, storageError });
+
+    if (storageError) {
+      console.error('[deletePost] Storage 删除失败:', storageError);
+      alert(`文件删除失败: ${storageError.message}`);
+      card.style.opacity = '';
+      btn.disabled = false;
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      console.warn('[deletePost] Storage remove 返回空数组，文件可能不存在:', storagePath);
+    } else {
+      console.log('[deletePost] Storage 文件删除成功:', data);
+    }
+  } else {
+    console.log('[deletePost] 无附件，跳过 Storage 删除');
   }
 
   // 删除数据库记录
@@ -239,7 +262,7 @@ window.deletePost = async function(id, storagePath, btn) {
   card.remove();
   const list = document.getElementById('post-list');
   if (!list.querySelector('.post-card')) {
-    list.innerHTML = '<p class="empty">复平面空空如也，来发布第一条吧！</p>';
+    list.innerHTML = '<p class="empty">复平面空空如也,来发布第一条吧!</p>';
   }
 };
 

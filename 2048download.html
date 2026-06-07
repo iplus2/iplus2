@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>双人版2048 Demo版</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="site-header">
+    <div class="header-inner">
+      <h1 class="header-logo"><a href="index.html">iplus2的空间</a></h1>
+      <div class="header-actions">
+        <div id="header-auth-area" class="header-auth-area">
+          <button id="header-auth-btn" class="btn btn-primary btn-sm" onclick="window.location.href='login.html'">
+            登录 / 注册
+          </button>
+        </div>
+        <div id="header-user-dropdown" class="header-user-dropdown" style="display:none;">
+          <div class="user-trigger">
+            <span id="header-user-name" class="header-user-name">用户名</span>
+            <span class="dropdown-arrow">▼</span>
+          </div>
+          <div id="dropdown-menu" class="dropdown-menu">
+            <div id="dropdown-user-name" class="dropdown-user-name">用户名</div>
+            <button id="btn-user-center" class="dropdown-item">用户中心</button>
+            <button id="btn-logout" class="dropdown-item dropdown-item-danger">退出登录</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-center">
+    <section class="download-section">
+      <h2>
+        <img src="images/2048-icon.png" alt="2048" style="height:3em;vertical-align:middle;margin-right:0.3em;">
+        双人版 2048 Demo版
+      </h2>
+      <p class="download-desc">合作 or 友尽，由你决定！</p>
+
+      <div class="download-cards">
+        <!-- Windows 下载卡片 -->
+        <div class="download-card">
+          <div class="download-icon">🪟</div>
+          <h3>Windows 版</h3>
+          <p class="download-info">约 22MB · RAR 压缩包</p>
+          <a href="https://glumggyukihrkfrryogd.supabase.co/storage/v1/object/public/attachments/2048download/2048.rar" class="btn btn-primary" id="btn-download-win">下载 Windows 版</a>
+        </div>
+
+        <!-- macOS 下载卡片 -->
+        <div class="download-card">
+          <div class="download-icon">🍎</div>
+          <h3>macOS 版</h3>
+          <p class="download-info">约 16MB · dmg 安装包</p>
+          <a href="https://glumggyukihrkfrryogd.supabase.co/storage/v1/object/public/attachments/2048download/2048_installer.dmg" class="btn btn-primary" id="btn-download-mac">下载 macOS 版</a>
+        </div>
+      </div>
+
+      <div style="margin-top: 30px;">
+        <a href="index.html" class="btn btn-secondary">← 返回主页</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="js/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/header-auth.js"></script>
+  <script src="js/2048download.js"></script>
+</body>
+</html>

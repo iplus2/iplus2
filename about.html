@@ -3,22 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>图片画廊</title>
+  <title>关于 iplus2</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <!-- 顶部导航 -->
   <header class="site-header">
     <div class="header-inner">
-      <h1 class="header-logo">iplus2的空间</h1>
+      <h1 class="header-logo"><a href="index.html">iplus2的空间</a></h1>
       <div class="header-actions">
-        <!-- 未登录状态 -->
         <div id="header-auth-area" class="header-auth-area">
           <button id="header-auth-btn" class="btn btn-primary btn-sm" onclick="window.location.href='login.html'">
             登录 / 注册
           </button>
         </div>
-        <!-- 已登录状态 -->
         <div id="header-user-dropdown" class="header-user-dropdown" style="display:none;">
           <div class="user-trigger">
             <span id="header-user-name" class="header-user-name">用户名</span>
@@ -34,22 +32,19 @@
     </div>
   </header>
 
-  <!-- 主页内容 -->
-  <main class="home-container">
-    <section class="home-hero">
-      <h2 id="home-welcome">欢迎来到iplus2的空间</h2>
-      <p id="home-description">登录后可上传图片、随机抽取晚餐</p>
-      <div style="margin-top: 20px;">
-        <a href="gallery.html" class="btn btn-primary home-cta">🌌 进入复平面</a>
+  <main class="page-center">
+    <section class="about-section">
+      <h2>关于 iplus2</h2>
+      <div class="about-content">
+        <p>一个存在于复数空间的神秘人 👤</p>
+        <p>喜欢玩 MC，欢迎来找我玩～</p>
+        <p>
+          B站账号：<strong>地瓜啃卡尔</strong><br />
+          B站主页：<a href="https://space.bilibili.com/1502577225" target="_blank">https://space.bilibili.com/1502577225</a>
+        </p>
       </div>
-      <div style="margin-top: 15px;">
-        <a href="2048download.html" class="btn btn-primary home-cta">🎮 双人版2048下载</a>
-      </div>
-      <div style="margin-top: 15px;">
-        <a href="dinner.html" class="btn btn-secondary home-cta">🍽️ 晚饭吃啥？</a>
-      </div>
-      <div style="margin-top: 15px;">
-        <a href="about.html" class="btn btn-outline home-cta">ℹ️ 关于 iplus2</a>
+      <div style="margin-top: 30px;">
+        <a href="index.html" class="btn btn-secondary">← 返回主页</a>
       </div>
     </section>
   </main>
@@ -57,6 +52,5 @@
   <script src="js/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/header-auth.js"></script>
-  <script src="js/home.js"></script>
 </body>
 </html>
