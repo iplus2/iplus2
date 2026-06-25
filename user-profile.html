@@ -55,6 +55,93 @@
     .back-link:hover {
       color: #333;
     }
+    /* ---- 会员卡片 ---- */
+    .member-section {
+      margin: 24px 0;
+      padding: 20px;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .member-section h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+      text-align: center;
+    }
+    .member-info-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .member-info-vip {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border: 1px solid #f59e0b;
+    }
+    .member-info-svip {
+      background: linear-gradient(135deg, #fce4ec, #f8bbd0);
+      border: 1px solid #ec4899;
+    }
+    .member-info-normal {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+    }
+    .member-info-icon {
+      font-size: 32px;
+      line-height: 1;
+    }
+    .member-info-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .member-info-desc {
+      font-size: 13px;
+      color: #64748b;
+    }
+    .member-info-date {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+    .member-activate-section {
+      text-align: center;
+    }
+    .member-activate-section h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .member-activate-desc {
+      font-size: 13px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    .member-activate-form {
+      display: flex;
+      gap: 8px;
+    }
+    .member-code-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .member-code-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+    }
+    .member-activate-form .btn {
+      width: auto;
+      padding: 10px 24px;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
@@ -101,6 +188,14 @@
         </div>
       </div>
 
+      <!-- 会员信息 -->
+      <div class="member-section">
+        <h3>💎 会员</h3>
+        <div id="member-status">
+          <p style="text-align:center;color:#94a3b8;font-size:13px;">加载中...</p>
+        </div>
+      </div>
+
       <div class="profile-actions">
         <button id="btn-change-name" class="btn btn-secondary">✏️ 修改用户名</button>
         <button id="btn-change-pwd" class="btn btn-secondary">🔐 修改密码</button>
@@ -113,6 +208,7 @@
   <script src="js/supabase.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/header-auth.js"></script>
+  <script src="js/vip.js"></script>
   <script src="js/auth.js"></script>
   <script>
     // ============================================
@@ -139,6 +235,57 @@
 
       if (profile) {
         document.getElementById('user-username').textContent = profile.username;
+      }
+
+      // 加载会员信息
+      const { userType, upgradedAt } = await getMemberInfo();
+      const memberStatus = document.getElementById('member-status');
+      renderMemberSection(memberStatus, userType, upgradedAt);
+
+      // 激活码事件绑定
+      if (!userType) {
+        setTimeout(() => {
+          const btnActivate = document.getElementById('btn-activate-code');
+          const codeInput = document.getElementById('invite-code-input');
+          const msgEl = document.getElementById('member-activate-message');
+
+          if (btnActivate) {
+            btnActivate.addEventListener('click', async () => {
+              const code = codeInput?.value.trim();
+              if (!code) {
+                msgEl.className = 'message error';
+                msgEl.style.display = 'block';
+                msgEl.textContent = '请输入邀请码';
+                return;
+              }
+
+              btnActivate.disabled = true;
+              btnActivate.textContent = '激活中...';
+              msgEl.style.display = 'none';
+
+              const result = await activateCode(code);
+
+              if (result.success) {
+                msgEl.className = 'message success';
+                msgEl.textContent = result.message;
+                // 刷新会员信息
+                const updated = await getMemberInfo();
+                renderMemberSection(memberStatus, updated.userType, updated.upgradedAt);
+              } else {
+                msgEl.className = 'message error';
+                msgEl.textContent = result.message;
+              }
+              msgEl.style.display = 'block';
+              btnActivate.disabled = false;
+              btnActivate.textContent = '激活';
+            });
+
+            // 回车键触发
+            codeInput?.addEventListener('keydown', (e) => {
+              if (e.key === 'Enter') btnActivate.click();
+            });
+          }
+        }, 100);
       }
 
       // 修改用户名

@@ -65,14 +65,14 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // 注册成功 → 创建 profiles 记录（绕过触发器问题）
-    if (data.user) {
-      const displayName = username || email.split('@')[0];
-      await supabase.from('profiles').insert({
-        id: data.user.id,
-        username: displayName
-      });
-    }
+    // 注册成功 → profiles 由 handle_new_user 触发器自动创建
+    // if (data.user) {
+    //   const displayName = username || email.split('@')[0];
+    //   await supabase.from('profiles').insert({
+    //     id: data.user.id,
+    //     username: displayName
+    //   });
+    // }
 
     // 注册成功
     if (data.user && !data.session) {

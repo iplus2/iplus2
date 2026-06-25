@@ -12,10 +12,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (session) {
     const user = session.user;
 
-    // 从 profiles 表读取用户名（权威来源），fallback 到 auth metadata → 邮箱前缀
+    // 从 profiles 表读取用户名 + 会员类型（权威来源），fallback 到 auth metadata → 邮箱前缀
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username')
+      .select('username, user_type')
       .eq('id', user.id)
       .single();
 
@@ -32,6 +32,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     userDropdown.style.display = 'flex';
     headerUserName.textContent = username;
     if (dropdownUserName) dropdownUserName.textContent = username;
+
+    // 显示会员徽章（如有 VIP/SVIP）
+    if (profile?.user_type) {
+      if (typeof updateMemberBadgeInDropdown === 'function') {
+        updateMemberBadgeInDropdown(profile.user_type);
+      }
+    }
 
     // 展开/收起下拉菜单
     userDropdown.addEventListener('click', (e) => {

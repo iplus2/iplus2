@@ -651,6 +651,30 @@ body {
 
 /* ---- Responsive ---- */
 
+/* ---- 会员徽章（header 下拉菜单） ---- */
+
+.member-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  line-height: 1.4;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.member-vip {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  color: #fff;
+}
+
+.member-svip {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: #fff;
+}
+
 @media (max-width: 600px) {
   .auth-card {
     padding: 28px 20px;
@@ -664,4 +688,29 @@ body {
   #gallery {
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   }
+}
+
+/* ============================================
+   复平面 VIP 提示
+   ============================================ */
+.post-compose-vip-tip {
+  text-align: center;
+  padding: 40px 20px;
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 24px;
+}
+.post-compose-vip-tip p {
+  margin: 8px 0;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+.post-compose-vip-tip a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.post-compose-vip-tip a:hover {
+  text-decoration: underline;
 }

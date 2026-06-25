@@ -10,15 +10,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession();
   currentUser = session?.user || null;
 
-  // 根据登录状态控制发布区
+  // 根据登录状态 + 会员身份控制发布区
   const compose = document.getElementById('post-compose');
   const composeTip = document.getElementById('post-compose-tip');
-  if (currentUser) {
-    compose.style.display = '';
-    composeTip.style.display = 'none';
-  } else {
+  const composeVipTip = document.getElementById('post-compose-vip-tip');
+
+  if (!currentUser) {
     compose.style.display = 'none';
     composeTip.style.display = '';
+    if (composeVipTip) composeVipTip.style.display = 'none';
+  } else {
+    // 检查会员身份
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('user_type')
+      .eq('id', currentUser.id)
+      .single();
+
+    const userType = profile?.user_type;
+    if (userType === 'vip' || userType === 'svip') {
+      compose.style.display = '';
+      composeTip.style.display = 'none';
+      if (composeVipTip) composeVipTip.style.display = 'none';
+    } else {
+      compose.style.display = 'none';
+      composeTip.style.display = 'none';
+      if (composeVipTip) composeVipTip.style.display = '';
+    }
   }
 
   // 初始化发布功能
