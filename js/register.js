@@ -4,6 +4,13 @@
 
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.getElementById('register-form');
+  const submitBtn = document.getElementById('btn-register-submit');
+
+  /** 锁定/解锁提交按钮 */
+  function setButtonLocked(locked) {
+    submitBtn.disabled = locked;
+    submitBtn.textContent = locked ? '注册中...' : '注 册';
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -32,11 +39,15 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    // 锁定按钮防重复提交
+    setButtonLocked(true);
+
     // 先检查邮箱是否已被注册（通过尝试登录来检测）
     const { data: existingUser } = await supabase.rpc('check_email_exists', { p_email: email });
     // 如果 rpc 不存在，用 signInWithPassword 快速验证
     if (existingUser === true) {
       showMessage('register-msg', '该邮箱已被注册，请直接登录或找回密码');
+      setButtonLocked(false);
       return;
     }
 
@@ -48,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .maybeSingle();
     if (existingUsername) {
       showMessage('register-msg', '该用户名已被使用，请换一个');
+      setButtonLocked(false);
       return;
     }
 
@@ -62,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (error) {
       showMessage('register-msg', `注册失败: ${error.message}`);
+      setButtonLocked(false);
       return;
     }
 
@@ -78,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.user && !data.session) {
       // 需要邮箱验证
       showMessage('register-msg', '注册成功！请查收邮箱完成验证，然后登录。', 'success');
+      setButtonLocked(false);
     } else {
       // 自动确认，直接跳转
       window.location.href = 'gallery.html';

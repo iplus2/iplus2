@@ -62,8 +62,8 @@ function updateMemberBadgeInDropdown(userType) {
   const oldBadge = userNameEl.querySelector('.member-badge');
   if (oldBadge) oldBadge.remove();
 
-  // 添加新 badge
-  if (userType) {
+  // 仅 VIP/SVIP 显示徽章
+  if (userType === 'vip' || userType === 'svip') {
     const badge = document.createElement('span');
     badge.className = `member-badge ${userType === 'svip' ? 'member-svip' : 'member-vip'}`;
     badge.textContent = userType === 'svip' ? 'SVIP' : 'VIP';
