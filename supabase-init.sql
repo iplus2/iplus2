@@ -70,6 +70,7 @@ CREATE POLICY "posts_delete" ON posts FOR DELETE USING (auth.uid() = user_id);
 -- 给 profiles 表添加用户类型字段（NULL=普通用户, vip, svip）
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS user_type TEXT DEFAULT NULL;
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS upgraded_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE;
 
 -- 邀请码表
 CREATE TABLE IF NOT EXISTS invite_codes (

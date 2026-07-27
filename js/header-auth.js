@@ -12,10 +12,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (session) {
     const user = session.user;
 
-    // 从 profiles 表读取用户名 + 会员类型（权威来源），fallback 到 auth metadata → 邮箱前缀
+    // 从 profiles 表读取用户名 + 会员类型 + 管理员标识（权威来源），fallback 到 auth metadata → 邮箱前缀
     const { data: profile } = await supabase
       .from('profiles')
-      .select('username, user_type')
+      .select('username, user_type, is_admin')
       .eq('id', user.id)
       .single();
 
@@ -37,6 +37,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (profile?.user_type) {
       if (typeof updateMemberBadgeInDropdown === 'function') {
         updateMemberBadgeInDropdown(profile.user_type);
+      }
+    }
+
+    // SVIP 用户或管理员：添加「专属空间」入口
+    const canAccessPrivate = profile?.user_type === 'svip' || profile?.is_admin === true;
+    if (canAccessPrivate) {
+      const menu = document.getElementById('dropdown-menu');
+      if (menu) {
+        const divider = document.createElement('div');
+        divider.className = 'dropdown-divider';
+        divider.style.cssText = 'height:1px;background:#eee;margin:4px 0;';
+        const privateLink = document.createElement('a');
+        privateLink.href = '#';
+        privateLink.className = 'dropdown-item';
+        privateLink.textContent = '💎 专属空间';
+        privateLink.addEventListener('click', (e) => {
+          e.preventDefault();
+          document.getElementById('dropdown-menu').style.display = 'none';
+          window.location.href = 'svip-private.html';
+        });
+        menu.appendChild(divider);
+        menu.appendChild(privateLink);
       }
     }
 
