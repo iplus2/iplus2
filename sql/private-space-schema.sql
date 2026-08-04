@@ -40,10 +40,10 @@ CREATE POLICY "private_spaces_select" ON private_spaces FOR SELECT USING (
   OR auth.uid() = user_id
 );
 
--- private_spaces: admin 或 SVIP 用户可以插入（创建自己的 space）
+-- private_spaces: admin 或 VIP/SVIP 用户可以插入（创建自己的 space）
 CREATE POLICY "private_spaces_insert" ON private_spaces FOR INSERT WITH CHECK (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = TRUE)
-  OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND user_type = 'svip')
+  OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND user_type IN ('vip', 'svip'))
 );
 
 -- private_spaces: admin 或该用户可以删除自己的 space

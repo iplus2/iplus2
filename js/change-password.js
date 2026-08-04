@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       showMsg('pwd-msg', `修改失败: ${error.message}`, 'error');
     } else {
       showMsg('pwd-msg', '密码修改成功！即将返回...', 'success');
-      setTimeout(() => { window.location.href = 'gallery.html'; }, 1500);
+      setTimeout(() => { window.location.href = 'index.html'; }, 1500);
     }
   });
 });

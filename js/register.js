@@ -94,7 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setButtonLocked(false);
     } else {
       // 自动确认，直接跳转
-      window.location.href = 'gallery.html';
+      window.location.href = 'index.html';
     }
   });
 });

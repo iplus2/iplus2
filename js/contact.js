@@ -1,5 +1,5 @@
 // ============================================
-// 专属空间 JS 逻辑
+// 联系站主 JS 逻辑
 // ============================================
 
 let currentSpaceId = null;
@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
-    showNotice('请先登录后再访问专属空间。');
+    showNotice('请先登录后再访问联系站主。');
     document.getElementById('space-status').textContent = '请先登录';
     return;
   }
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const canAccess = isAdmin || memberInfo.userType === 'svip';
 
   if (!canAccess) {
-    showNotice('⚠️ 此页面仅对 SVIP 用户和网站管理员开放。');
+    showNotice('⚠️ 此页面仅对 VIP/SVIP 会员和网站管理员开放。');
     document.getElementById('space-status').textContent = '无权访问';
     document.getElementById('private-compose').style.display = 'none';
     return;
@@ -64,14 +64,14 @@ async function checkIsAdmin(userId) {
   return data?.is_admin === true;
 }
 
-// 初始化专属空间
+// 初始化联系站主
 async function initSpace(isAdmin) {
   const statusEl = document.getElementById('space-status');
   const composeEl = document.getElementById('private-compose');
 
   if (isAdmin) {
-    // 管理员：列出所有专属空间，渲染用户选择器
-    statusEl.textContent = '👑 管理员视图';
+    // 管理员：列出所有联系站主，渲染用户选择器
+    statusEl.textContent = '👑 站主视图';
 
     const { data: spaces } = await supabase
       .from('private_spaces')
@@ -120,7 +120,7 @@ async function initSpace(isAdmin) {
     return;
   }
 
-  // SVIP 用户：查找自己的 space
+  // SVIP会员：查找自己的 space
   const { data: existing } = await supabase
     .from('private_spaces')
     .select('id')
@@ -129,7 +129,7 @@ async function initSpace(isAdmin) {
 
   if (existing) {
     currentSpaceId = existing.id;
-    statusEl.textContent = '💬 与 iplus2 的专属对话';
+    statusEl.textContent = '💬 与 iplus2 的与站主的对话';
     composeEl.style.display = 'block';
   } else {
     const { data: newSpace, error } = await supabase
@@ -144,7 +144,7 @@ async function initSpace(isAdmin) {
     }
 
     currentSpaceId = newSpace.id;
-    statusEl.textContent = '💬 与 iplus2 的专属对话';
+    statusEl.textContent = '💬 与 iplus2 的与站主的对话';
     composeEl.style.display = 'block';
   }
 }
@@ -168,7 +168,7 @@ async function loadPosts() {
       <div class="private-empty">
         <div class="private-empty-icon">💭</div>
         <p>还没有消息</p>
-        <p style="font-size:0.85rem;margin-top:6px;color:#ccc">${isAdminUser ? '等待 SVIP 用户发起对话' : '发送第一条消息，开启专属对话'}</p>
+        <p style="font-size:0.85rem;margin-top:6px;color:#ccc">${isAdminUser ? '等待用户发起对话' : '发送第一条消息，开启与站主的对话'}</p>
       </div>`;
     return;
   }

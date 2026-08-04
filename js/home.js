@@ -21,6 +21,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       const username = user.user_metadata?.username || user.email.split('@')[0];
       homeWelcome.textContent = `欢迎回来，${username}`;
       homeDescription.textContent = '你可以浏览其他用户上传的图片，也可以上传自己的作品。';
+
+      // VIP/SVIP 用户显示「联系站主」大按钮
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('user_type')
+          .eq('id', user.id)
+          .single();
+        if (profile?.user_type === 'vip' || profile?.user_type === 'svip') {
+          const btnWrap = document.getElementById('home-contact-btn-wrap');
+          if (btnWrap) btnWrap.style.display = 'block';
+        }
+      } catch (e) {
+        console.warn('VIP button check failed:', e);
+      }
     } else {
       homeWelcome.textContent = '欢迎来到iplus2的空间';
       homeDescription.textContent = '登录后可上传图片、随机抽取晚餐';
