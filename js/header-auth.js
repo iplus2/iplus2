@@ -40,45 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
 
-    // 管理员：邀请码管理入口（显示在联系站主之前）
-    if (profile?.is_admin) {
-      const menu = document.getElementById('dropdown-menu');
-      if (menu) {
-        const adminLink = document.createElement('a');
-        adminLink.href = '#';
-        adminLink.className = 'dropdown-item';
-        adminLink.textContent = '🎫 邀请码管理';
-        adminLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          document.getElementById('dropdown-menu').style.display = 'none';
-          window.location.href = 'admin-invite.html';
-        });
-        menu.appendChild(adminLink);
-      }
-    }
-
-    // VIP/SVIP 用户或管理员：添加「联系站主」入口
-    const canAccessPrivate = profile?.user_type === 'vip' || profile?.user_type === 'svip' || profile?.is_admin === true;
-    if (canAccessPrivate) {
-      const menu = document.getElementById('dropdown-menu');
-      if (menu) {
-        const divider = document.createElement('div');
-        divider.className = 'dropdown-divider';
-        divider.style.cssText = 'height:1px;background:#eee;margin:4px 0;';
-        const privateLink = document.createElement('a');
-        privateLink.href = '#';
-        privateLink.className = 'dropdown-item';
-        privateLink.textContent = '💎 联系站主';
-        privateLink.addEventListener('click', (e) => {
-          e.preventDefault();
-          document.getElementById('dropdown-menu').style.display = 'none';
-          window.location.href = 'contact.html';
-        });
-        menu.appendChild(divider);
-        menu.appendChild(privateLink);
-      }
-    }
-
     // 展开/收起下拉菜单
     userDropdown.addEventListener('click', (e) => {
       e.stopPropagation();

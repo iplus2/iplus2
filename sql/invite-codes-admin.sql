@@ -3,15 +3,10 @@
 -- 在 Supabase Dashboard → SQL Editor 中执行
 -- ============================================
 
--- 1. 把 invite_codes 的 used 字段名统一（表里叫 is_used，函数里用 used）
-ALTER TABLE invite_codes DROP COLUMN IF EXISTS used;
-ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS used BOOLEAN DEFAULT FALSE;
-
--- 2. 新增 type 字段（每条邀请码指定是 vip 还是 svip）
-ALTER TABLE invite_codes ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'vip';
-
--- 3. 创建邀请码生成函数（仅管理员可调用）
-CREATE OR REPLACE FUNCTION create_invite_code(p_type TEXT)
+-- 邀请码生成函数（支持自定义码，仅管理员可用）
+-- 参数 p_type: 'vip' 或 'svip'
+-- 参数 p_custom_code: 可选，自定义邀请码（不填则自动生成8位随机码）
+CREATE OR REPLACE FUNCTION create_invite_code(p_type TEXT, p_custom_code TEXT DEFAULT NULL)
 RETURNS TEXT
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -25,15 +20,21 @@ BEGIN
     RAISE EXCEPTION '无权操作';
   END IF;
 
-  -- 生成 8 位随机邀请码
-  v_code := substr(md5(random()::text || clock_timestamp()::text), 1, 8);
+  -- 决定码内容
+  IF p_custom_code IS NOT NULL AND length(trim(p_custom_code)) > 0 THEN
+    v_code := trim(p_custom_code);
+  ELSE
+    v_code := substr(md5(random()::text || clock_timestamp()::text), 1, 8);
+  END IF;
 
-  INSERT INTO public.invite_codes (code, type, created_by)
-  VALUES (v_code, p_type, auth.uid());
+  -- 检查码是否重复
+  IF EXISTS (SELECT 1 FROM public.invite_codes WHERE code = v_code) THEN
+    RAISE EXCEPTION '邀请码已存在，请换一个';
+  END IF;
+
+  INSERT INTO public.invite_codes (code, type)
+  VALUES (v_code, lower(p_type));
 
   RETURN v_code;
 END;
 $$;
-
--- 4. 创建管理员专属邀请码管理页面（HTML + 内联 JS）
--- 该页面仅 is_admin = TRUE 的用户可访问

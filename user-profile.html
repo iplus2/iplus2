@@ -242,8 +242,8 @@
       const memberStatus = document.getElementById('member-status');
       renderMemberSection(memberStatus, userType, upgradedAt);
 
-      // 激活码事件绑定
-      if (!userType) {
+      // 激活码事件绑定（free/NULL 用户才需要激活）
+      if (userType !== 'vip' && userType !== 'svip') {
         setTimeout(() => {
           const btnActivate = document.getElementById('btn-activate-code');
           const codeInput = document.getElementById('invite-code-input');

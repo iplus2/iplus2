@@ -130,6 +130,7 @@
             <option value="vip">VIP</option>
             <option value="svip">SVIP</option>
           </select>
+          <input type="text" id="custom-code-input" placeholder="留空则自动生成" maxlength="24" style="padding:8px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:0.9rem;outline:none;" />
           <button id="btn-gen-code" class="btn btn-primary">生成</button>
         </div>
         <div id="gen-result" class="result-box result-empty" style="display:none;"></div>
@@ -168,6 +169,7 @@
       // 生成
       document.getElementById('btn-gen-code').addEventListener('click', async () => {
         const type = document.getElementById('code-type-select').value;
+        const customCode = document.getElementById('custom-code-input').value;
         const btn = document.getElementById('btn-gen-code');
         const result = document.getElementById('gen-result');
         btn.disabled = true;
@@ -175,11 +177,15 @@
         result.style.display = 'none';
 
         try {
-          const { data, error } = await supabase.rpc('create_invite_code', { p_type: type });
+          const { data, error } = await supabase.rpc('create_invite_code', {
+            p_type: type,
+            p_custom_code: customCode || null
+          });
           if (error) throw error;
           result.className = 'result-box result-success';
           result.innerHTML = `✅ 邀请码生成成功：<strong>${data}</strong>（${type.toUpperCase()}）
             <button class="btn-copy" onclick="copyCode(this, '${data}')">复制</button>`;
+          document.getElementById('custom-code-input').value = '';
           result.style.display = 'block';
           loadCodes();
         } catch (e) {
@@ -207,7 +213,11 @@
 
       loading.style.display = 'none';
 
-      if (error || !codes || codes.length === 0) {
+      if (error) {
+        list.innerHTML = `<div style="text-align:center;padding:20px;color:#e11d48;">加载失败：${error.message}</div>`;
+        return;
+      }
+      if (!codes || codes.length === 0) {
         list.innerHTML = '<div style="text-align:center;padding:20px;color:#aaa;">暂无邀请码</div>';
         return;
       }

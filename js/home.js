@@ -22,19 +22,36 @@ document.addEventListener('DOMContentLoaded', async () => {
       homeWelcome.textContent = `欢迎回来，${username}`;
       homeDescription.textContent = '你可以浏览其他用户上传的图片，也可以上传自己的作品。';
 
-      // VIP/SVIP 用户显示「联系站主」大按钮
+      // 显示专属按钮
       try {
         const { data: profile } = await supabase
           .from('profiles')
-          .select('user_type')
+          .select('user_type, is_admin')
           .eq('id', user.id)
           .single();
+
+        // VIP/SVIP 显示「个人空间」
         if (profile?.user_type === 'vip' || profile?.user_type === 'svip') {
           const btnWrap = document.getElementById('home-contact-btn-wrap');
           if (btnWrap) btnWrap.style.display = 'block';
         }
+
+        // 管理员显示「站主工作台」
+        if (profile?.is_admin === true) {
+          const adminBtnWrap = document.getElementById('home-admin-btn-wrap');
+          if (adminBtnWrap) adminBtnWrap.style.display = 'block';
+
+          // 管理员也能访问个人空间（把按钮文字改成工作台链接）
+          const contactBtn = document.getElementById('home-contact-btn');
+          if (contactBtn) {
+            contactBtn.textContent = '🌐 个人空间';
+            contactBtn.href = 'contact.html';
+          }
+          const contactWrap = document.getElementById('home-contact-btn-wrap');
+          if (contactWrap) contactWrap.style.display = 'block';
+        }
       } catch (e) {
-        console.warn('VIP button check failed:', e);
+        console.warn('Button check failed:', e);
       }
     } else {
       homeWelcome.textContent = '欢迎来到iplus2的空间';

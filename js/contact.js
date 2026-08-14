@@ -1,5 +1,5 @@
 // ============================================
-// 联系站主 JS 逻辑
+// 个人空间 JS 逻辑
 // ============================================
 
 let currentSpaceId = null;
@@ -9,13 +9,13 @@ let isAdminUser = false;
 
 // ⚠️ 管理员 ID（你在这里填入你在 auth.users 中的 UUID）
 // 通过 SQL 查询：SELECT id FROM auth.users WHERE email = '你的邮箱';
-const ADMIN_ID = '把你的 UUID 粘贴到这里';
+const ADMIN_ID = '2b6a77d2-c75d-45fc-a2a4-02251e01b704';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
-    showNotice('请先登录后再访问联系站主。');
+    showNotice('请先登录后再访问个人空间。');
     document.getElementById('space-status').textContent = '请先登录';
     return;
   }
@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 获取当前用户会员信息
   const memberInfo = await getMemberInfo();
   const isAdmin = await checkIsAdmin(currentUserId);
-  const canAccess = isAdmin || memberInfo.userType === 'svip';
+  const canAccess = isAdmin || memberInfo.userType === 'vip' || memberInfo.userType === 'svip';
 
   if (!canAccess) {
     showNotice('⚠️ 此页面仅对 VIP/SVIP 会员和网站管理员开放。');
@@ -64,18 +64,18 @@ async function checkIsAdmin(userId) {
   return data?.is_admin === true;
 }
 
-// 初始化联系站主
+// 初始化个人空间
 async function initSpace(isAdmin) {
   const statusEl = document.getElementById('space-status');
   const composeEl = document.getElementById('private-compose');
 
   if (isAdmin) {
-    // 管理员：列出所有联系站主，渲染用户选择器
-    statusEl.textContent = '👑 站主视图';
+    // 管理员：列出所有个人空间，渲染用户选择器
+    statusEl.textContent = '👑 管理员视图';
 
     const { data: spaces } = await supabase
       .from('private_spaces')
-      .select('id, user_id, profiles(username)')
+      .select('id, user_id')
       .order('created_at', { ascending: false });
 
     if (!spaces || spaces.length === 0) {
@@ -83,9 +83,20 @@ async function initSpace(isAdmin) {
       return;
     }
 
+    // 单独查询用户名（避免 embed 报错）
+    const userIds = spaces.map(s => s.user_id);
+    const { data: profileList } = await supabase
+      .from('profiles')
+      .select('id, username')
+      .in('id', userIds);
+
+    const usernameMap = {};
+    (profileList || []).forEach(p => { usernameMap[p.id] = p.username; });
+
     let optionsHtml = '<option value="">— 选择用户 —</option>';
     spaces.forEach(s => {
-      optionsHtml += `<option value="${s.id}">${s.profiles?.username || s.user_id.slice(0, 8)}</option>`;
+      const name = usernameMap[s.user_id] || s.user_id.slice(0, 8);
+      optionsHtml += `<option value="${s.id}">${escapeHtml(name)}</option>`;
     });
 
     composeEl.innerHTML = `
@@ -129,7 +140,7 @@ async function initSpace(isAdmin) {
 
   if (existing) {
     currentSpaceId = existing.id;
-    statusEl.textContent = '💬 与 iplus2 的与站主的对话';
+    statusEl.textContent = '💬 与 iplus2 的与管理员的对话';
     composeEl.style.display = 'block';
   } else {
     const { data: newSpace, error } = await supabase
@@ -144,9 +155,45 @@ async function initSpace(isAdmin) {
     }
 
     currentSpaceId = newSpace.id;
-    statusEl.textContent = '💬 与 iplus2 的与站主的对话';
+    statusEl.textContent = '💬 与 iplus2 的与管理员的对话';
     composeEl.style.display = 'block';
+
+    // SVIP 创建时自动发一条欢迎消息（管理员视角）
+    await sendAutoWelcomeMessage(newSpace.id);
   }
+}
+
+// 发送自动欢迎消息（VIP/SVIP 各一套默认消息）
+async function sendAutoWelcomeMessage(spaceId) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
+
+  // 获取用户类型
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('user_type, username')
+    .eq('id', session.user.id)
+    .single();
+
+  const username = profile?.username
+    || session.user.user_metadata?.username
+    || session.user.email.split('@')[0];
+
+  // VIP/SVIP 各一套默认消息
+  const welcomeMsg = profile?.user_type === 'svip'
+    ? '欢迎加入 SVIP 专属空间！我是 iplus2，有任何问题随时找我。'
+    : '欢迎加入 VIP 空间！我是 iplus2，期待与你交流。';
+
+  await supabase.from('private_posts').insert({
+    space_id: spaceId,
+    author_id: session.user.id,
+    author_name: username,
+    content: welcomeMsg,
+    file_name: null,
+    file_url: null,
+    file_type: null,
+    storage_path: null
+  });
 }
 
 // 加载对话记录
@@ -168,7 +215,7 @@ async function loadPosts() {
       <div class="private-empty">
         <div class="private-empty-icon">💭</div>
         <p>还没有消息</p>
-        <p style="font-size:0.85rem;margin-top:6px;color:#ccc">${isAdminUser ? '等待用户发起对话' : '发送第一条消息，开启与站主的对话'}</p>
+        <p style="font-size:0.85rem;margin-top:6px;color:#ccc">${isAdminUser ? '等待用户发起对话' : '发送第一条消息，开启与管理员的对话'}</p>
       </div>`;
     return;
   }
@@ -189,8 +236,9 @@ function buildPostElement(post) {
   const isAdminAuthor = post.author_id === ADMIN_ID;
 
   let badge = '';
-  if (isAdminAuthor) {
-    badge = '<span class="private-post-author-badge badge-admin">站主</span>';
+  // 只有管理员自己看时才显示「管理员」标签，普通用户看不到
+  if (isAdminAuthor && isAdminUser) {
+    badge = '<span class="private-post-author-badge badge-admin">管理员</span>';
   } else if (isAdminUser && !isMine) {
     badge = '<span class="private-post-author-badge badge-svip">SVIP</span>';
   }
@@ -312,7 +360,12 @@ async function submitPost() {
     document.getElementById('compose-content').value = '';
     document.getElementById('compose-file').value = '';
     selectedFile = null;
-    fileNameDisplay.style.display = 'none';
+    const fileNameDisplay = document.getElementById('compose-file-name');
+    if (fileNameDisplay) fileNameDisplay.style.display = 'none';
+
+    showMsg(msgEl, '发送成功', 'success');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '发 送';
 
     await loadPosts();
 
