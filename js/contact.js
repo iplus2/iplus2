@@ -181,8 +181,8 @@ async function sendAutoWelcomeMessage(spaceId) {
 
   // VIP/SVIP 各一套默认消息
   const welcomeMsg = profile?.user_type === 'svip'
-    ? '欢迎加入 SVIP 专属空间！我是 iplus2，有任何问题随时找我。'
-    : '欢迎加入 VIP 空间！我是 iplus2，期待与你交流。';
+    ? '欢迎老婆回家！'
+    : '欢迎加入根号i神教！';
 
   await supabase.from('private_posts').insert({
     space_id: spaceId,
