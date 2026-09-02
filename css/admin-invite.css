@@ -1,0 +1,195 @@
+body {
+  background: #f5f6fa;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.admin-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 60px;
+}
+
+.admin-header {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+
+.admin-header h1 {
+  font-size: 1.5rem;
+  color: #333;
+}
+
+.admin-header p {
+  font-size: 0.85rem;
+  color: #888;
+  margin-top: 6px;
+}
+
+.admin-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.admin-card h3 {
+  font-size: 0.95rem;
+  color: #555;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9rem;
+}
+
+.code-row:last-child {
+  border-bottom: none;
+}
+
+.code-str {
+  font-family: monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+  letter-spacing: 2px;
+}
+
+.code-type {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.code-type-vip {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.code-type-svip {
+  background: #ede9fe;
+  color: #7c3aed;
+}
+
+.code-status {
+  font-size: 0.78rem;
+  color: #aaa;
+  flex: 1;
+  text-align: right;
+}
+
+.gen-form {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.gen-form select {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.gen-form select:focus {
+  border-color: var(--color-primary, #3b82f6);
+}
+
+.result-box {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.result-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+}
+
+.result-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.result-empty {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  color: #6b7280;
+  text-align: center;
+}
+
+.btn-copy {
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-copy:hover {
+  background: #e5e7eb;
+}
+
+.btn-copy.copied {
+  background: #d1fae5;
+  border-color: #6ee7b7;
+  color: #065f46;
+}
+
+.notice {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 14px 18px;
+  font-size: 0.88rem;
+  color: #92400e;
+  margin-bottom: 20px;
+}
+
+.admin-access-denied {
+  margin-top: 20px;
+}
+
+.loading {
+  text-align: center;
+  padding: 24px;
+  color: #aaa;
+}
+
+.admin-list-message {
+  text-align: center;
+  padding: 20px;
+  color: #aaa;
+}
+
+.admin-list-error {
+  color: #e11d48;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 16px;
+  color: #888;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.back-link:hover {
+  color: #333;
+}

@@ -10,10 +10,10 @@ iplus2 是一个原生 HTML/CSS/JavaScript 多页个人网站。页面由静态�
 
 ```text
 浏览器页面
-  ├─ css/style.css
+  ├─ css/style.css + 页面专属 CSS
   ├─ js/supabase.min.js（Supabase JS 2.49.4，仓库内 vendored 文件）
   ├─ js/config.js（创建全局 supabase client）
-  └─ 页面/共享经典脚本
+  └─ 共享脚本 + 页面专属经典脚本
           ↓
       Supabase
       ├─ Auth
@@ -29,12 +29,14 @@ iplus2 是一个原生 HTML/CSS/JavaScript 多页个人网站。页面由静态�
 ```text
 iplus2/
 ├── *.html                 # 每个文件都是可直接访问的页面入口
-├── css/style.css          # 全站共享样式；部分复杂页面另有内联样式
+├── css/
+│   ├── style.css          # 全站基础样式与共享组件
+│   └── 其他 *.css         # 管理员、个人空间、用户中心的页面专属样式
 ├── js/
 │   ├── supabase.min.js    # vendored @supabase/supabase-js 2.49.4 UMD 构建
 │   ├── config.js          # 公开 Supabase 配置及全局 client 初始化
 │   ├── auth.js            # 通用认证、登出和消息 helper
-│   ├── header-auth.js     # 全站 header 登录状态、用户名和下拉菜单
+│   ├── header-auth.js     # 统一渲染全站 header，并处理认证状态和菜单
 │   ├── vip.js             # 会员查询、激活和徽章/会员区渲染
 │   └── 其他 *.js          # 页面专属行为
 ├── images/                # 静态图片资源
@@ -56,14 +58,14 @@ iplus2/
 | `login.html` | 邮箱/密码登录 | `auth.js`、`login.js` |
 | `register.html` | 注册、用户名重复检查 | `auth.js`、`register.js` |
 | `change-password.html` | 已登录用户修改密码 | `change-password.js` |
-| `user-profile.html` | 用户资料、改名、会员状态和邀请码激活 | `vip.js`、页面内联脚本 |
-| `contact.html` | VIP/SVIP 与管理员的私密对话、附件上传 | `auth.js`、`vip.js`、`contact.js` |
-| `admin-invite.html` | 管理员生成和查看邀请码 | 页面内联脚本、`create_invite_code` RPC |
+| `user-profile.html` | 用户资料、改名、会员状态和邀请码激活 | `vip.js`、`user-profile.js`、`user-profile.css` |
+| `contact.html` | VIP/SVIP 与管理员的私密对话、附件上传 | `auth.js`、`vip.js`、`contact.js`、`contact.css` |
+| `admin-invite.html` | 管理员生成和查看邀请码 | `admin-invite.js`、`admin-invite.css`、`create_invite_code` RPC |
 | `2048download.html` | Windows/macOS 下载入口 | 静态 Supabase Storage 公共链接 |
-| `dinner.html` | 本地随机晚餐工具 | 页面内联 JavaScript，不读写后端 |
+| `dinner.html` | 本地随机晚餐工具 | `dinner.js`，不读写后端 |
 | `about.html` | 站点介绍和外部主页链接 | 仅共享 header/会员脚本 |
 
-`contact.html`、`admin-invite.html`、`user-profile.html` 含较多内联 CSS；`admin-invite.html`、`user-profile.html`、`dinner.html` 还含内联 JavaScript。新增可复用行为时优先放到 `js/`，但修改既有页面前要同时检查内联代码。
+所有页面只保留 `<div id="site-header"></div>` 挂载点，实际 header markup 由 `header-auth.js` 统一生成。页面不再包含 `<style>` 或无 `src` 的内联 `<script>` 块；可复用行为进入共享文件，页面专属行为和复杂样式分别放入同名 JS/CSS 文件。
 
 ## 4. 关键 JavaScript 模块
 
@@ -71,13 +73,16 @@ iplus2/
 |---|---|---|
 | `js/config.js` | 定义全局 `SUPABASE_URL`、`SUPABASE_ANON_KEY` 和 `supabase` client | `window.supabase` |
 | `js/auth.js` | `requireAuth`、`logout`、`showMessage`、`hideMessage` | 全局 `supabase`、固定页面路径 |
-| `js/header-auth.js` | 查询 session/profile，显示登录按钮或用户下拉，处理用户中心/登出 | `profiles` 表；可选调用 `updateMemberBadgeInDropdown` |
+| `js/header-auth.js` | 渲染共享 header，查询 session/profile，显示认证状态并处理菜单 | `profiles` 表；可选调用 `updateMemberBadgeInDropdown` |
 | `js/vip.js` | 查询会员状态、调用激活 RPC、渲染 VIP/SVIP UI | `profiles`、`activate_vip_code` |
 | `js/home.js` | 更新主页欢迎语，按会员/管理员状态显示入口 | Auth、`profiles` |
 | `js/login.js` | 表单校验与 `signInWithPassword` | `auth.js` |
 | `js/register.js` | 注册校验、邮箱/用户名检查和 `signUp` | `auth.js`、`profiles`、可选 `check_email_exists` RPC |
 | `js/change-password.js` | 校验新密码并调用 `auth.updateUser` | Auth |
 | `js/contact.js` | 创建/选择空间、对话 CRUD、附件上传/删除、DOM 转义 | `vip.js`、三张业务表、`attachments` bucket |
+| `js/user-profile.js` | 加载资料、修改用户名、绑定会员激活和改密入口 | `vip.js`、Auth、`profiles` |
+| `js/admin-invite.js` | 管理员校验、邀请码生成/列表/复制；使用 DOM API 安全渲染后端文本 | Auth、`profiles`、`invite_codes`、`create_invite_code` |
+| `js/dinner.js` | 本地晚餐随机选择与动画 | DOM，无后端依赖 |
 
 脚本使用全局函数与变量，没有模块隔离；新增同名顶层标识符可能覆盖其他脚本。页面行为通常在 `DOMContentLoaded` 中绑定，异步 Supabase 调用使用 `async/await`。
 
@@ -167,7 +172,7 @@ for file in js/*.js; do node --check "$file" || exit 1; done
 git diff --check
 ```
 
-`node --check` 只能覆盖独立 `.js` 文件，不能覆盖 HTML 内联脚本或浏览器/Supabase 运行时行为。修改页面后还需人工检查浏览器控制台和 Network 面板。
+`node --check` 只能覆盖独立 `.js` 文件，不能覆盖 DOM、CSS 或浏览器/Supabase 运行时行为。修改页面后还需人工检查浏览器控制台和 Network 面板。
 
 最低手工回归范围：
 
@@ -189,10 +194,11 @@ git diff --check
 
 以下约定来自现有代码并作为后续改动的默认规则：
 
-- HTML 使用 2 空格缩进、语义化结构和相对路径；共享 header 的 DOM id 必须与 `header-auth.js` 一致。
-- CSS 使用 `:root` custom properties、Flexbox/Grid 和移动端 media query；公共规则进入 `css/style.css`，避免继续扩大内联样式。
+- HTML 使用 2 空格缩进、语义化结构和相对路径；每个页面必须保留唯一的 `#site-header` 挂载点并加载 `header-auth.js`，不要复制 header markup。
+- CSS 使用 `:root` custom properties、Flexbox/Grid 和移动端 media query；公共规则进入 `css/style.css`，页面专属规则进入独立 CSS，不新增 `<style>` 块。
 - JavaScript 使用 2 空格缩进、单引号、分号、`const`/`let`、camelCase、`async/await` 和早返回。
 - DOM 用户文本使用 `textContent` 或显式 `escapeHtml`；不要把未经转义的用户名、文件名、邀请码或消息拼入 `innerHTML`。
+- 页面逻辑使用外部 JS 文件和 `addEventListener`，不要新增无 `src` 的 `<script>` 块或 `onclick` 等内联事件。
 - 异步提交时禁用按钮并恢复状态；用户可见错误使用页面消息，诊断信息才写控制台。
 - 文件名和路径是公开 URL 契约；重命名页面或脚本时要全仓搜索所有 `href`、`src` 和重定向字符串。
 - 数据库字段、RPC 参数、Storage 路径和 RLS 是一个整体，不能只改单侧。
@@ -204,15 +210,12 @@ git diff --check
 
 这些是当前源码可验证的事实；修复后应立即更新本节。
 
-- `2048download.html` 引用了不存在的 `js/2048download.js`，浏览器会产生 404。
-- `index.html` 的 `<title>` 和部分文案、`css/style.css` 中大量 gallery/post 样式仍保留早期画廊/帖子原型语义，与当前主页不一致。
 - 当前前端引用 `check_email_exists` RPC，但仓库 SQL 未定义它。
 - `supabase-init.sql` 不是安全迁移：它会 `DROP TABLE IF EXISTS posts`，且 policy 创建并非全部可重复执行。
 - 当前附件上传路径以 `private/` 开头，而 `sql/private-space-schema.sql` 注释中的 DELETE policy 示例按首级目录匹配用户 id；两者不一致，可能导致数据库消息已删但 Storage 对象仍保留。
 - `private_spaces_insert` policy 只检查请求者是否为会员/管理员，没有要求普通会员插入的 `user_id = auth.uid()`；会员可能为其他用户占用唯一空间，需要在后续数据库修复中收紧。
 - `js/contact.js` 中存在固定管理员 UUID，仅用于徽章判断；管理员授权本身来自 `profiles.is_admin`。两套来源可能不一致。
-- 页面重复 header markup，并混合共享 CSS/JS 与内联 CSS/JS；改共享 UI 时容易漏页。
-- `posts` 表和 gallery/post CSS 仍在，但当前没有 `gallery.html` 或 `js/gallery.js`；不要假设公共帖子功能仍可用。
+- 早期 `posts` 表仍由 `supabase-init.sql` 创建，但当前没有对应页面或前端脚本；在核实线上数据库和历史临时 SQL 前不要删除或重建该表。
 
 ## 11. 修改完成检查清单
 

@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const user = session.user;
       const username = user.user_metadata?.username || user.email.split('@')[0];
       homeWelcome.textContent = `欢迎回来，${username}`;
-      homeDescription.textContent = '你可以浏览其他用户上传的图片，也可以上传自己的作品。';
+      homeDescription.textContent = '探索站点功能，或前往用户中心管理你的账号。';
 
       // 显示专属按钮
       try {
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     } else {
       homeWelcome.textContent = '欢迎来到iplus2的空间';
-      homeDescription.textContent = '登录后可上传图片、随机抽取晚餐';
+      homeDescription.textContent = '登录后可使用用户中心和会员专属功能';
     }
   } catch (e) {
     console.error('Session check failed:', e);
