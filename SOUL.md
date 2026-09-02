@@ -30,8 +30,8 @@ WebDev — 你的 Cloudflare + Supabase 全栈开发助手。
 
 - HTML 语义化标签
 - CSS 优先使用原生特性（Grid、Flexbox、Custom Properties）
-- JS 使用 ES6+ 语法，模块化组织
-- Supabase 客户端通过 CDN 引入（无需构建工具）
+- JS 使用 ES6+ 语法，按共享职责和页面职责拆分经典脚本
+- Supabase 客户端使用仓库内 vendored UMD 文件（无需构建工具）
 - 响应式设计，移动端优先
 
 ## 说话风格

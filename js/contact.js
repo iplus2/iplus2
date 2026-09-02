@@ -429,7 +429,11 @@ function formatTime(isoStr) {
   if (diffH < 24) return diffH + ' 小时前';
   const diffD = Math.floor(diffH / 24);
   if (diffD < 7) return diffD + ' 天前';
-  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+  return d.toLocaleDateString('zh-CN', {
+    timeZone: 'Asia/Shanghai',
+    month: 'short',
+    day: 'numeric'
+  });
 }
 
 // HTML 转义

@@ -1,26 +1,25 @@
-# MEMORY.md
+# MEMORY.md - 长期项目记忆
 
-- **2026-05-03**: 工作区创建，项目启动
-- **2026-05-07**: 完成 GitHub push（通过 SSH，HTTPS 443 port 被网络封锁）
-  - 生成 ed25519 SSH key，公钥已添加到 GitHub (webdev@cf-workspace)
-  - HTTPS git push 失败（gnutls 错误），SSH (port 22) 正常
-  - 仓库: https://github.com/iplus2/iplus2.git（仓库名是 iplus2，不是 cf-dev）
-  - 提交: `445ff47` 初始项目, `df93603` .gitignore
-  - 三个页面：登录(index.html)、注册(register.html)、图片画廊(gallery.html)
-  - 技术栈：纯 HTML/CSS/JS + Supabase（Auth + Storage + Database）
-  - 功能：邮箱密码注册/登录、图片拖拽/点击上传、查看所有用户图片
-  - 数据库表：profiles（用户资料）、images（图片记录）
-  - 需要用户配置：js/config.js 中的 Supabase URL 和 Anon Key
-  - 需要在 Supabase 中执行 supabase-init.sql 初始化数据库
-  - 需要在 Supabase Storage 中创建 images bucket 并设为 Public
+## 稳定决策
 
-- **2026-05-15**: 修复 exec 工具故障
-  - 原因：QClaw 安全沙箱插件 `pcmgr-ai-security` 引用缺失的 `tsbx.exe`，导致所有 exec 被拦截
-  - 解决：David 禁用沙箱后恢复
-  - 环境验证通过：WSL git ✓ SSH ✓ GitHub push ✓ Supabase 连接 ✓
-  - 注意：PowerShell 不支持 `&&`，用 `;` 分隔命令
-  - 注意：WSL 访问 Windows 路径需转换 `C:\` → `/mnt/c/`
+- 项目采用原生 HTML/CSS/JavaScript，多页静态站点形态，避免不必要的前端框架和构建依赖。
+- 后端使用 Supabase Auth、Postgres/RLS、RPC 和 Storage；部署目标是 Cloudflare Pages。
+- 用户体验优先考虑中文用户、移动端和低维护成本。
+- 权限必须由 Supabase RLS/RPC 保证，前端显示控制不能替代后端授权。
+- 浏览器端只允许公开 Supabase URL 与 anon/publishable key；任何 Markdown 都不得记录 key 的实际值。
 
-## Supabase 配置
-- URL: `https://glumggyukihrkfrryogd.supabase.co`
-- Anon Key: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdsdW1nZ3l1a2locmtmcnJ5b2dkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0MjMxMzMsImV4cCI6MjA5Mjk5OTEzM30.dotVxWQzwYkNj7UFKt8pmbOwUj3H4zTw3jKSO22Ds9Q`
+## 项目演进
+
+- 项目最初是登录、注册和图片画廊原型，后来演进为 iplus2 个人网站。
+- 当前功能包括认证与用户中心、VIP/SVIP 邀请码、管理员邀请码管理、会员私密空间及附件、双人 2048 下载页、晚餐随机工具和关于页。
+- 早期 gallery/post 相关 SQL、CSS 和部分文案仍残留；当前项目事实和已知风险统一维护在 `PROJECT.md`。
+- Git 远程仓库为 `iplus2/iplus2`。历史环境曾使用 WSL 专用推送脚本；这些不可移植的辅助脚本已从仓库移除，后续使用当前环境的普通 Git 命令。
+
+## 文档入口
+
+- 开发代理规则：`AGENTS.md`
+- 架构、目录、命令、数据契约和注意事项：`PROJECT.md`
+- 本地工具速查：`TOOLS.md`
+- 短期进展：`memory/YYYY-MM-DD.md`
+
+不得在本文件加入 API key、密码、token、SSH key 或其他凭据，也不要保存一次性任务状态。
