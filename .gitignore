@@ -13,3 +13,4 @@ Thumbs.db
 
 # 本地短期记忆；长期说明写入根目录 Markdown
 memory/
+sql_backup/

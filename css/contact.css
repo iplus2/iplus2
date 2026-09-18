@@ -124,6 +124,26 @@
   gap: 14px;
 }
 
+.private-pagination {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.private-pagination p {
+  color: #888;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.private-pagination button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.private-pagination button[hidden] {
+  display: none;
+}
+
 .private-post {
   background: #fff;
   border: 1px solid #e5e7eb;

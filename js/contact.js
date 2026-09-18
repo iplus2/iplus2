@@ -6,6 +6,11 @@ let currentSpaceId = null;
 let currentUserId = null;
 let selectedFile = null;
 let isAdminUser = false;
+const postsPageSize = 10;
+let postsCursor = null;
+let hasMorePosts = false;
+let postsLoading = false;
+let postsRequestId = 0;
 
 // ⚠️ 管理员 ID（你在这里填入你在 auth.users 中的 UUID）
 // 通过 SQL 查询：SELECT id FROM auth.users WHERE email = '你的邮箱';
@@ -25,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 获取当前用户会员信息
   const memberInfo = await getMemberInfo();
   const isAdmin = await checkIsAdmin(currentUserId);
+  isAdminUser = isAdmin;
   const canAccess = isAdmin || memberInfo.userType === 'vip' || memberInfo.userType === 'svip';
 
   if (!canAccess) {
@@ -36,6 +42,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // 初始化空间 & 加载对话
   await initSpace(isAdmin);
+  document.getElementById('btn-load-more').addEventListener('click', () => loadPosts(true));
   await loadPosts();
   bindComposeEvents();
 });
@@ -196,32 +203,72 @@ async function sendAutoWelcomeMessage(spaceId) {
   });
 }
 
-// 加载对话记录
-async function loadPosts() {
+// 按时间和 ID 倒序分页；游标避免新消息或删除消息导致历史记录跳页。
+async function loadPosts(loadMore = false) {
+  if (loadMore && (postsLoading || !hasMorePosts)) return;
+  const requestId = ++postsRequestId;
   const feed = document.getElementById('private-feed');
-  feed.innerHTML = '<div class="private-loading">加载中...</div>';
+  const button = document.getElementById('btn-load-more');
+  const status = document.getElementById('posts-status');
 
-  isAdminUser = await checkIsAdmin(currentUserId);
-
-  const { data: posts, error } = await supabase
-    .from('private_posts')
-    .select('id, space_id, author_id, author_name, content, file_name, file_url, file_type, storage_path, created_at')
-    .order('created_at', { ascending: true });
-
-  feed.innerHTML = '';
-
-  if (error || !posts || posts.length === 0) {
-    feed.innerHTML = `
-      <div class="private-empty">
-        <div class="private-empty-icon">💭</div>
-        <p>还没有消息</p>
-        <p style="font-size:0.85rem;margin-top:6px;color:#ccc">${isAdminUser ? '等待用户发起对话' : '发送第一条消息，开启与管理员的对话'}</p>
-      </div>`;
-    return;
+  if (!loadMore) {
+    postsCursor = null;
+    hasMorePosts = false;
+    feed.innerHTML = '<div class="private-loading">加载中...</div>';
+    button.hidden = true;
   }
+  postsLoading = true;
+  button.disabled = true;
+  button.textContent = '加载中...';
+  status.textContent = '';
 
-  for (const post of posts) {
-    feed.appendChild(buildPostElement(post));
+  try {
+    let query = supabase
+      .from('private_posts')
+      .select('id, space_id, author_id, author_name, content, file_name, file_url, file_type, storage_path, created_at')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(postsPageSize + 1);
+
+    // 站主保留所有对话的汇总视图，会员只查询自己的空间；权限仍由 RLS 校验。
+    if (!isAdminUser) {
+      if (!currentSpaceId) throw new Error('空间尚未就绪，请刷新页面重试');
+      query = query.eq('space_id', currentSpaceId);
+    }
+    if (postsCursor) {
+      query = query.or(`created_at.lt.${postsCursor.created_at},and(created_at.eq.${postsCursor.created_at},id.lt.${postsCursor.id})`);
+    }
+
+    const { data: posts, error } = await query;
+    if (requestId !== postsRequestId) return;
+    if (error) throw error;
+
+    // 多查一条仅用于判断是否还有历史消息，每次最多渲染十条。
+    const page = (posts || []).slice(0, postsPageSize);
+    if (!loadMore || !postsCursor) feed.replaceChildren();
+    for (const post of page) {
+      feed.appendChild(buildPostElement(post));
+    }
+    if (page.length) postsCursor = page[page.length - 1];
+    hasMorePosts = (posts || []).length > postsPageSize;
+    if (!feed.children.length) {
+      feed.innerHTML = '<div class="private-empty"><div class="private-empty-icon">💭</div><p>还没有消息</p></div>';
+    } else if (!hasMorePosts) {
+      status.textContent = '已加载全部消息';
+    }
+    button.textContent = '加载更多';
+  } catch (error) {
+    if (requestId !== postsRequestId) return;
+    if (!postsCursor) feed.replaceChildren();
+    status.textContent = `加载失败：${error.message || '请稍后重试'}`;
+    hasMorePosts = true;
+    button.textContent = '重试加载';
+  } finally {
+    if (requestId === postsRequestId) {
+      postsLoading = false;
+      button.disabled = false;
+      button.hidden = !hasMorePosts;
+    }
   }
 }
 
@@ -253,7 +300,7 @@ function buildPostElement(post) {
         ${badge}
       </div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <span class="private-post-time">${time}</span>
+        <span class="private-post-time" title="${formatDate(post.created_at)}（上海时间）">${time}</span>
         ${isMine ? '<button class="btn-delete-post" data-id="' + post.id + '">🗑 删除</button>' : ''}
       </div>
     </div>
@@ -386,7 +433,11 @@ async function deletePost(postId) {
     .eq('id', postId)
     .single();
 
-  await supabase.from('private_posts').delete().eq('id', postId);
+  const { error } = await supabase.from('private_posts').delete().eq('id', postId);
+  if (error) {
+    showMsg(document.getElementById('compose-msg'), `删除失败：${error.message}`, 'error');
+    return;
+  }
 
   if (post?.storage_path) {
     try {
@@ -400,6 +451,10 @@ async function deletePost(postId) {
   if (el) el.remove();
 
   const feed = document.getElementById('private-feed');
+  if (!feed.children.length && hasMorePosts) {
+    await loadPosts(true);
+    return;
+  }
   if (!feed.children.length) {
     feed.innerHTML = `
       <div class="private-empty">
@@ -431,6 +486,7 @@ function formatTime(isoStr) {
   if (diffD < 7) return diffD + ' 天前';
   return d.toLocaleDateString('zh-CN', {
     timeZone: 'Asia/Shanghai',
+    year: 'numeric',
     month: 'short',
     day: 'numeric'
   });

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>信箱</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/mailbox.css" />
+</head>
+<body>
+  <div id="site-header"></div>
+  <main class="mailbox-wrap">
+    <header class="mailbox-heading">
+      <h1>📮 信箱</h1>
+      <p>把照片寄给对方，留一点等待的时间。</p>
+      <p>照片寄出 48 小时后对方才能看到，寄出后不可撤回或删除。</p>
+    </header>
+    <p id="mailbox-status" role="status">正在打开信箱...</p>
+    <div id="mailbox-content" hidden>
+      <form id="mailbox-compose" class="mailbox-card">
+        <h2>寄一张照片</h2>
+        <fieldset id="mailbox-fields">
+          <label for="mailbox-recipient">收件人</label>
+          <select id="mailbox-recipient" required></select>
+          <label for="mailbox-file">选择照片</label>
+          <input id="mailbox-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" />
+          <p class="mailbox-hint">每次一张，支持 JPG、PNG、WebP、GIF，最大 10 MB。</p>
+          <img id="mailbox-preview" class="mailbox-photo" alt="待寄照片预览" hidden />
+        </fieldset>
+        <button id="mailbox-send" class="btn btn-primary" type="submit">寄出照片</button>
+        <p id="mailbox-send-status" role="status"></p>
+      </form>
+      <nav class="mailbox-toolbar" aria-label="信件分类">
+        <button id="mailbox-inbox" class="btn btn-secondary" type="button" aria-pressed="true">收到的照片</button>
+        <button id="mailbox-sent" class="btn btn-secondary" type="button" aria-pressed="false">寄出的照片</button>
+        <button id="mailbox-refresh" class="btn btn-secondary" type="button">刷新</button>
+      </nav>
+      <p id="mailbox-list-status" role="status"></p>
+      <div id="mailbox-feed" class="mailbox-feed"></div>
+      <button id="mailbox-more" class="btn btn-secondary" type="button" hidden>加载更多</button>
+    </div>
+  </main>
+  <script src="js/supabase.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/header-auth.js"></script>
+  <script src="js/vip.js"></script>
+  <script src="js/mailbox.js"></script>
+</body>
+</html>

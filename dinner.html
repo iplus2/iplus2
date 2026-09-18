@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>晚饭吃什么</title>
+  <title>吃点什么</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
   <div id="site-header"></div>
 
-  <!-- 随机选晚餐页面 -->
+  <!-- 按上海时间随机推荐餐食 -->
   <main class="page-center">
     <div class="auth-container" style="max-width: 500px;">
       <div class="auth-card">
-        <h1>🍽️ 晚饭吃什么？</h1>
-        <p class="subtitle">纠结党的救星来了！</p>
+        <h1 id="meal-title">🍽️ 吃点什么？</h1>
+        <p id="meal-description" class="subtitle">纠结党的救星来了！</p>
 
         <!-- 抽取结果 -->
-        <div id="result-box" class="message" style="display: none; font-size: 1.5em; padding: 30px; margin: 20px 0;">
+        <div id="result-box" class="message" role="status" style="display: none; font-size: 1.5em; padding: 30px; margin: 20px 0;">
         </div>
 
         <button id="btn-spin" class="btn btn-primary" style="font-size: 1.2em; padding: 15px 40px;">
