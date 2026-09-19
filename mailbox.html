@@ -12,13 +12,13 @@
   <main class="mailbox-wrap">
     <header class="mailbox-heading">
       <h1>📮 信箱</h1>
-      <p>把照片寄给对方，留一点等待的时间。</p>
-      <p>照片寄出 48 小时后对方才能看到，寄出后不可撤回或删除。</p>
+      <p>把信件寄给对方，留一点等待的时间。</p>
+      <p>信件寄出 48 小时后对方才能看到，寄出后不可撤回或删除。</p>
     </header>
     <p id="mailbox-status" role="status">正在打开信箱...</p>
     <div id="mailbox-content" hidden>
       <form id="mailbox-compose" class="mailbox-card">
-        <h2>寄一张照片</h2>
+        <h2>寄一封信</h2>
         <fieldset id="mailbox-fields">
           <label for="mailbox-recipient">收件人</label>
           <select id="mailbox-recipient" required></select>
@@ -27,12 +27,12 @@
           <p class="mailbox-hint">每次一张，支持 JPG、PNG、WebP、GIF，最大 10 MB。</p>
           <img id="mailbox-preview" class="mailbox-photo" alt="待寄照片预览" hidden />
         </fieldset>
-        <button id="mailbox-send" class="btn btn-primary" type="submit">寄出照片</button>
+        <button id="mailbox-send" class="btn btn-primary" type="submit">寄出信件</button>
         <p id="mailbox-send-status" role="status"></p>
       </form>
       <nav class="mailbox-toolbar" aria-label="信件分类">
-        <button id="mailbox-inbox" class="btn btn-secondary" type="button" aria-pressed="true">收到的照片</button>
-        <button id="mailbox-sent" class="btn btn-secondary" type="button" aria-pressed="false">寄出的照片</button>
+        <button id="mailbox-inbox" class="btn btn-secondary" type="button" aria-pressed="true">收到的信件</button>
+        <button id="mailbox-sent" class="btn btn-secondary" type="button" aria-pressed="false">寄出的信件</button>
         <button id="mailbox-refresh" class="btn btn-secondary" type="button">刷新</button>
       </nav>
       <p id="mailbox-list-status" role="status"></p>

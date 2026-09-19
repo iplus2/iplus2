@@ -42,59 +42,34 @@ document.addEventListener('DOMContentLoaded', () => {
     // 锁定按钮防重复提交
     setButtonLocked(true);
 
-    // 先检查邮箱是否已被注册（通过尝试登录来检测）
-    const { data: existingUser } = await supabase.rpc('check_email_exists', { p_email: email });
-    // 如果 rpc 不存在，用 signInWithPassword 快速验证
-    if (existingUser === true) {
-      showMessage('register-msg', '该邮箱已被注册，请直接登录或找回密码');
-      setButtonLocked(false);
-      return;
-    }
-
-    // 检查用户名是否重复
-    const { data: existingUsername } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', username)
-      .maybeSingle();
-    if (existingUsername) {
-      showMessage('register-msg', '该用户名已被使用，请换一个');
-      setButtonLocked(false);
-      return;
-    }
-
-    // 注册
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { username }
+    try {
+      // 只查询用户名是否已用，不读取其他用户资料或检查邮箱是否存在。
+      const { data: taken, error: checkError } = await supabase.rpc('is_username_taken', { p_username: username });
+      if (checkError) throw checkError;
+      if (taken) {
+        showMessage('register-msg', '该用户名已被使用，请换一个');
+        return;
       }
-    });
 
-    if (error) {
-      showMessage('register-msg', `注册失败: ${error.message}`);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username } }
+      });
+      if (error) throw error;
+
+      // 是否发送验证邮件由 Auth 决定，不据此确认邮箱是否已有账号。
+      if (data.user && !data.session) {
+        showMessage('register-msg', '请查看邮箱中的验证信息；若已有账号，可直接登录。', 'success');
+      } else if (data.session) {
+        window.location.href = 'index.html';
+      } else {
+        showMessage('register-msg', '注册尚未确认，请稍后重试');
+      }
+    } catch (error) {
+      showMessage('register-msg', `注册失败：${error.message || '请稍后重试'}`);
+    } finally {
       setButtonLocked(false);
-      return;
-    }
-
-    // 注册成功 → profiles 由 handle_new_user 触发器自动创建
-    // if (data.user) {
-    //   const displayName = username || email.split('@')[0];
-    //   await supabase.from('profiles').insert({
-    //     id: data.user.id,
-    //     username: displayName
-    //   });
-    // }
-
-    // 注册成功
-    if (data.user && !data.session) {
-      // 需要邮箱验证
-      showMessage('register-msg', '注册成功！请查收邮箱完成验证，然后登录。', 'success');
-      setButtonLocked(false);
-    } else {
-      // 自动确认，直接跳转
-      window.location.href = 'index.html';
     }
   });
 });

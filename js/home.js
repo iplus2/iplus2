@@ -36,9 +36,10 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (btnWrap) btnWrap.style.display = 'block';
         }
 
-        // 信箱仅对站主和 SVIP 显示
+        // 信箱和心愿单仅对站主和 SVIP 显示
         if (profile?.is_admin === true || profile?.user_type === 'svip') {
           document.getElementById('home-mailbox-btn-wrap').style.display = 'block';
+          document.getElementById('home-wishlist-btn-wrap').style.display = 'block';
         }
 
         // 管理员显示「站主工作台」

@@ -12,39 +12,59 @@ let hasMorePosts = false;
 let postsLoading = false;
 let postsRequestId = 0;
 
-// ⚠️ 管理员 ID（你在这里填入你在 auth.users 中的 UUID）
-// 通过 SQL 查询：SELECT id FROM auth.users WHERE email = '你的邮箱';
-const ADMIN_ID = '2b6a77d2-c75d-45fc-a2a4-02251e01b704';
+const privateAttachmentBucket = 'private-attachments';
+const postProfiles = new Map();
+const attachmentUrls = new Set();
+let postSending = false;
+let pendingPost = null;
+const deletingPosts = new Set();
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session) {
-    showNotice('请先登录后再访问个人空间。');
-    document.getElementById('space-status').textContent = '请先登录';
-    return;
-  }
+    if (!session) {
+      showNotice('请先登录后再访问个人空间。');
+      document.getElementById('space-status').textContent = '请先登录';
+      return;
+    }
 
-  currentUserId = session.user.id;
+    currentUserId = session.user.id;
 
-  // 获取当前用户会员信息
-  const memberInfo = await getMemberInfo();
-  const isAdmin = await checkIsAdmin(currentUserId);
-  isAdminUser = isAdmin;
-  const canAccess = isAdmin || memberInfo.userType === 'vip' || memberInfo.userType === 'svip';
+    // 获取当前用户会员信息
+    const memberInfo = await getMemberInfo();
+    const isAdmin = await checkIsAdmin(currentUserId);
+    isAdminUser = isAdmin;
+    const canAccess = isAdmin || memberInfo.userType === 'vip' || memberInfo.userType === 'svip';
 
-  if (!canAccess) {
-    showNotice('⚠️ 此页面仅对 VIP/SVIP 会员和网站管理员开放。');
-    document.getElementById('space-status').textContent = '无权访问';
+    if (!canAccess) {
+      showNotice('⚠️ 此页面仅对 VIP/SVIP 会员和网站管理员开放。');
+      document.getElementById('space-status').textContent = '无权访问';
+      document.getElementById('private-compose').style.display = 'none';
+      return;
+    }
+
+    supabase.auth.onAuthStateChange((event, nextSession) => {
+      if (event !== 'SIGNED_OUT' && (!nextSession || nextSession.user.id === currentUserId)) return;
+      currentUserId = null;
+      postsRequestId++;
+      clearAttachmentUrls();
+      document.getElementById('private-feed').replaceChildren();
+      document.getElementById('private-compose').style.display = 'none';
+      document.getElementById('btn-load-more').hidden = true;
+      document.getElementById('space-status').textContent = '登录状态已改变，请刷新后重新进入。';
+    });
+
+    // 初始化空间 & 加载对话
+    await initSpace(isAdmin);
+    document.getElementById('btn-load-more').addEventListener('click', () => loadPosts(true));
+    await loadPosts();
+    bindComposeEvents();
+    restorePendingPost();
+  } catch (error) {
+    document.getElementById('space-status').textContent = `空间打开失败：${error.message || '请刷新重试'}`;
     document.getElementById('private-compose').style.display = 'none';
-    return;
   }
-
-  // 初始化空间 & 加载对话
-  await initSpace(isAdmin);
-  document.getElementById('btn-load-more').addEventListener('click', () => loadPosts(true));
-  await loadPosts();
-  bindComposeEvents();
 });
 
 // 显示顶部提示
@@ -80,10 +100,11 @@ async function initSpace(isAdmin) {
     // 管理员：列出所有个人空间，渲染用户选择器
     statusEl.textContent = '👑 管理员视图';
 
-    const { data: spaces } = await supabase
+    const { data: spaces, error: spacesError } = await supabase
       .from('private_spaces')
       .select('id, user_id')
       .order('created_at', { ascending: false });
+    if (spacesError) throw spacesError;
 
     if (!spaces || spaces.length === 0) {
       composeEl.style.display = 'none';
@@ -92,10 +113,11 @@ async function initSpace(isAdmin) {
 
     // 单独查询用户名（避免 embed 报错）
     const userIds = spaces.map(s => s.user_id);
-    const { data: profileList } = await supabase
+    const { data: profileList, error: profilesError } = await supabase
       .from('profiles')
       .select('id, username')
       .in('id', userIds);
+    if (profilesError) throw profilesError;
 
     const usernameMap = {};
     (profileList || []).forEach(p => { usernameMap[p.id] = p.username; });
@@ -122,6 +144,7 @@ async function initSpace(isAdmin) {
         </label>
         <button id="btn-compose-submit" class="btn-compose">发 送</button>
       </div>
+      <p class="private-attachment-hint">附件仅对双方可见，单个文件最大 20 MB。</p>
       <div id="compose-file-name" style="font-size:0.8rem;color:#888;margin-top:6px;display:none;"></div>
       <div id="compose-msg" class="message" style="margin-top:8px;"></div>
     `;
@@ -139,15 +162,16 @@ async function initSpace(isAdmin) {
   }
 
   // SVIP会员：查找自己的 space
-  const { data: existing } = await supabase
+  const { data: existing, error: existingError } = await supabase
     .from('private_spaces')
     .select('id')
     .eq('user_id', currentUserId)
     .maybeSingle();
+  if (existingError) throw existingError;
 
   if (existing) {
     currentSpaceId = existing.id;
-    statusEl.textContent = '💬 与 iplus2 的与管理员的对话';
+    statusEl.textContent = '💬 与 iplus2 的对话';
     composeEl.style.display = 'block';
   } else {
     const { data: newSpace, error } = await supabase
@@ -162,7 +186,7 @@ async function initSpace(isAdmin) {
     }
 
     currentSpaceId = newSpace.id;
-    statusEl.textContent = '💬 与 iplus2 的与管理员的对话';
+    statusEl.textContent = '💬 与 iplus2 的对话';
     composeEl.style.display = 'block';
 
     // SVIP 创建时自动发一条欢迎消息（管理员视角）
@@ -182,24 +206,12 @@ async function sendAutoWelcomeMessage(spaceId) {
     .eq('id', session.user.id)
     .single();
 
-  const username = profile?.username
-    || session.user.user_metadata?.username
-    || session.user.email.split('@')[0];
-
-  // VIP/SVIP 各一套默认消息
   const welcomeMsg = profile?.user_type === 'svip'
     ? '欢迎老婆回家！'
     : '欢迎加入根号i神教！';
-
-  await supabase.from('private_posts').insert({
-    space_id: spaceId,
-    author_id: session.user.id,
-    author_name: username,
-    content: welcomeMsg,
-    file_name: null,
-    file_url: null,
-    file_type: null,
-    storage_path: null
+  await supabase.rpc('send_private_post', {
+    p_id: crypto.randomUUID(), p_space_id: spaceId, p_content: welcomeMsg,
+    p_storage_path: null, p_file_name: null
   });
 }
 
@@ -214,6 +226,7 @@ async function loadPosts(loadMore = false) {
   if (!loadMore) {
     postsCursor = null;
     hasMorePosts = false;
+    clearAttachmentUrls();
     feed.innerHTML = '<div class="private-loading">加载中...</div>';
     button.hidden = true;
   }
@@ -225,7 +238,7 @@ async function loadPosts(loadMore = false) {
   try {
     let query = supabase
       .from('private_posts')
-      .select('id, space_id, author_id, author_name, content, file_name, file_url, file_type, storage_path, created_at')
+      .select('id, space_id, author_id, author_name, content, file_name, file_type, storage_path, storage_bucket, created_at')
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .limit(postsPageSize + 1);
@@ -245,6 +258,13 @@ async function loadPosts(loadMore = false) {
 
     // 多查一条仅用于判断是否还有历史消息，每次最多渲染十条。
     const page = (posts || []).slice(0, postsPageSize);
+    if (page.length) {
+      const { data: authors, error: authorsError } = await supabase.from('profiles')
+        .select('id, is_admin, user_type').in('id', [...new Set(page.map(post => post.author_id))]);
+      if (requestId !== postsRequestId) return;
+      if (authorsError) throw authorsError;
+      (authors || []).forEach(author => postProfiles.set(author.id, author));
+    }
     if (!loadMore || !postsCursor) feed.replaceChildren();
     for (const post of page) {
       feed.appendChild(buildPostElement(post));
@@ -280,14 +300,15 @@ function buildPostElement(post) {
 
   const time = formatTime(post.created_at);
   const isMine = post.author_id === currentUserId;
-  const isAdminAuthor = post.author_id === ADMIN_ID;
+  const authorProfile = postProfiles.get(post.author_id);
+  const isAdminAuthor = authorProfile?.is_admin === true;
 
   let badge = '';
   // 只有管理员自己看时才显示「管理员」标签，普通用户看不到
   if (isAdminAuthor && isAdminUser) {
     badge = '<span class="private-post-author-badge badge-admin">管理员</span>';
-  } else if (isAdminUser && !isMine) {
-    badge = '<span class="private-post-author-badge badge-svip">SVIP</span>';
+  } else if (isAdminUser && !isMine && ['vip', 'svip'].includes(authorProfile?.user_type)) {
+    badge = `<span class="private-post-author-badge badge-${authorProfile.user_type}">${authorProfile.user_type.toUpperCase()}</span>`;
   }
 
   div.innerHTML = `
@@ -305,13 +326,22 @@ function buildPostElement(post) {
       </div>
     </div>
     ${post.content ? `<div class="private-post-content">${escapeHtml(post.content)}</div>` : ''}
-    ${post.file_url ? `
-      <div class="private-post-file">
-        <a href="${escapeHtml(post.file_url)}" target="_blank" rel="noopener">
-          📎 <span class="file-name-display">${escapeHtml(post.file_name || '附件')}</span>
-        </a>
-      </div>` : ''}
+    ${post.storage_path || post.file_name ? '<div class="private-post-file"></div>' : ''}
   `;
+
+  const attachment = div.querySelector('.private-post-file');
+  if (attachment) {
+    if (post.storage_bucket === privateAttachmentBucket && post.storage_path) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'btn-download-attachment';
+      button.textContent = `📎 下载 ${post.file_name || '附件'}`;
+      button.addEventListener('click', () => downloadPrivateAttachment(post, button));
+      attachment.appendChild(button);
+    } else {
+      attachment.textContent = '历史附件正在迁移，请稍后再试。';
+    }
+  }
 
   const deleteBtn = div.querySelector('.btn-delete-post');
   if (deleteBtn) {
@@ -340,127 +370,177 @@ function bindComposeEvents() {
   submitBtn.addEventListener('click', submitPost);
 }
 
-// 提交消息
-async function submitPost() {
-  const content = document.getElementById('compose-content').value.trim();
-  const msgEl = document.getElementById('compose-msg');
-  const submitBtn = document.getElementById('btn-compose-submit');
-  const { data: { session } } = await supabase.auth.getSession();
-
-  // 管理员必须先选用户
-  if (isAdminUser && !currentSpaceId) {
-    showMsg(msgEl, '请先选择上方「回复对象」', 'error');
-    return;
+// 上传和发送期间锁定目标、正文与附件；请求 ID 用于安全重试。
+function setComposeBusy(busy) {
+  postSending = busy;
+  for (const id of ['compose-content', 'compose-file', 'admin-space-select']) {
+    const element = document.getElementById(id);
+    if (element) element.disabled = busy || !!pendingPost;
   }
+  const button = document.getElementById('btn-compose-submit');
+  button.disabled = busy;
+  button.textContent = busy ? '发送中...' : pendingPost ? '重试确认发送' : '发 送';
+}
 
-  if (!content && !selectedFile) {
-    showMsg(msgEl, '请输入内容或添加附件', 'error');
-    return;
-  }
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = '发送中...';
-  msgEl.style.display = 'none';
-
-  let fileName = null, fileUrl = null, fileType = null, storagePath = null;
-
+function savePendingPost() {
   try {
-    if (selectedFile) {
-      const randomSuffix = Math.random().toString(36).slice(2, 8);
-      storagePath = `private/${currentSpaceId}/${randomSuffix}_${selectedFile.name}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('attachments')
-        .upload(storagePath, selectedFile, { upsert: false });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('attachments')
-        .getPublicUrl(storagePath);
-
-      fileName = selectedFile.name;
-      fileUrl = urlData.publicUrl;
-      fileType = selectedFile.type;
-    }
-
-    const username = session.user.user_metadata?.username
-      || (await supabase.from('profiles').select('username').eq('id', session.user.id).single())?.data?.username
-      || session.user.email.split('@')[0];
-
-    const { error: insertError } = await supabase
-      .from('private_posts')
-      .insert({
-        space_id: currentSpaceId,
-        author_id: session.user.id,
-        author_name: username,
-        content: content || null,
-        file_name: fileName,
-        file_url: fileUrl,
-        file_type: fileType,
-        storage_path: storagePath
-      });
-
-    if (insertError) throw insertError;
-
-    // 清空表单
-    document.getElementById('compose-content').value = '';
-    document.getElementById('compose-file').value = '';
-    selectedFile = null;
-    const fileNameDisplay = document.getElementById('compose-file-name');
-    if (fileNameDisplay) fileNameDisplay.style.display = 'none';
-
-    showMsg(msgEl, '发送成功', 'success');
-    submitBtn.disabled = false;
-    submitBtn.textContent = '发 送';
-
-    await loadPosts();
-
-  } catch (err) {
-    showMsg(msgEl, `发送失败: ${err.message}`, 'error');
-    submitBtn.disabled = false;
-    submitBtn.textContent = '发 送';
+    const key = `private-post-pending:${currentUserId}`;
+    if (pendingPost) sessionStorage.setItem(key, JSON.stringify(pendingPost));
+    else sessionStorage.removeItem(key);
+  } catch (error) {
+    // 浏览器禁用会话存储时，同一页面仍可重试。
   }
 }
 
-// 删除消息
-async function deletePost(postId) {
-  if (!confirm('确定要删除这条消息吗？')) return;
+function restorePendingPost() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(`private-post-pending:${currentUserId}`));
+    if (!saved || typeof saved.p_id !== 'string' || typeof saved.p_space_id !== 'string'
+      || (saved.p_content !== null && typeof saved.p_content !== 'string')
+      || (saved.p_storage_path !== null && saved.p_storage_path !== `${saved.p_space_id}/${currentUserId}/${saved.p_id}`)) return;
+    pendingPost = saved;
+    currentSpaceId = saved.p_space_id;
+    document.getElementById('compose-content').value = saved.p_content || '';
+    const select = document.getElementById('admin-space-select');
+    if (select) select.value = saved.p_space_id;
+    showMsg(document.getElementById('compose-msg'), '上次发送尚未确认，请重试；不会重复发送。', 'error');
+    setComposeBusy(false);
+  } catch (error) {
+    // 没有待确认的请求。
+  }
+}
 
-  const { data: post } = await supabase
-    .from('private_posts')
-    .select('storage_path')
-    .eq('id', postId)
-    .single();
-
-  const { error } = await supabase.from('private_posts').delete().eq('id', postId);
-  if (error) {
-    showMsg(document.getElementById('compose-msg'), `删除失败：${error.message}`, 'error');
+async function submitPost() {
+  if (postSending || !currentUserId) return;
+  const content = document.getElementById('compose-content').value.trim();
+  const msgEl = document.getElementById('compose-msg');
+  const sender = currentUserId;
+  const spaceId = currentSpaceId;
+  const file = selectedFile;
+  if (!pendingPost && (!spaceId || (!content && !file))) {
+    showMsg(msgEl, !spaceId ? '请先选择上方「回复对象」' : '请输入内容或添加附件', 'error');
     return;
   }
-
-  if (post?.storage_path) {
-    try {
-      await supabase.storage.from('attachments').remove([post.storage_path]);
-    } catch (e) {
-      console.warn('附件删除失败:', e.message);
+  if (!pendingPost && file && (!file.size || file.size > 20 * 1024 * 1024)) {
+    showMsg(msgEl, '附件须大于 0 且不超过 20 MB', 'error');
+    return;
+  }
+  setComposeBusy(true);
+  msgEl.style.display = 'none';
+  let success = false;
+  try {
+    if (!pendingPost) {
+      const id = crypto.randomUUID();
+      const path = file ? `${spaceId}/${sender}/${id}` : null;
+      if (file) {
+        const { error } = await supabase.storage.from(privateAttachmentBucket).upload(path, file, {
+          contentType: file.type || 'application/octet-stream', upsert: false, cacheControl: '0'
+        });
+        if (error) throw error;
+        if (sender !== currentUserId) return;
+      }
+      pendingPost = {
+        p_id: id, p_space_id: spaceId, p_content: content || null,
+        p_storage_path: path, p_file_name: file?.name || null
+      };
+      savePendingPost();
     }
+    const { error } = await supabase.rpc('send_private_post', pendingPost).single();
+    if (sender !== currentUserId) return;
+    if (error) throw error;
+    pendingPost = null;
+    savePendingPost();
+    document.getElementById('compose-content').value = '';
+    document.getElementById('compose-file').value = '';
+    selectedFile = null;
+    document.getElementById('compose-file-name').style.display = 'none';
+    showMsg(msgEl, '发送成功', 'success');
+    success = true;
+  } catch (error) {
+    if (sender === currentUserId) showMsg(msgEl, pendingPost
+      ? `发送尚未确认：${error.message}。请重试确认，不会重复发送。`
+      : `发送失败：${error.message}`, 'error');
+  } finally {
+    if (sender === currentUserId) setComposeBusy(false);
   }
+  if (success) await loadPosts();
+}
 
-  const el = document.querySelector(`[data-post-id="${postId}"]`);
-  if (el) el.remove();
+function clearAttachmentUrls() {
+  attachmentUrls.forEach(url => URL.revokeObjectURL(url));
+  attachmentUrls.clear();
+}
 
-  const feed = document.getElementById('private-feed');
-  if (!feed.children.length && hasMorePosts) {
-    await loadPosts(true);
-    return;
+window.addEventListener('pagehide', clearAttachmentUrls);
+
+async function downloadPrivateAttachment(post, button) {
+  if (button.disabled || !currentUserId) return;
+  const viewer = currentUserId;
+  const label = button.textContent;
+  button.disabled = true;
+  button.textContent = '正在下载...';
+  try {
+    const { data, error } = await supabase.storage.from(privateAttachmentBucket).download(post.storage_path);
+    if (error) throw error;
+    if (viewer !== currentUserId || !button.isConnected) return;
+    // 强制作为文件下载，避免 HTML/SVG 等附件在本站 origin 执行脚本。
+    const url = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' }));
+    attachmentUrls.add(url);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = post.file_name || '附件';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      attachmentUrls.delete(url);
+    }, 60000);
+    button.textContent = label;
+  } catch (error) {
+    button.textContent = '附件下载失败，点击重试';
+  } finally {
+    button.disabled = false;
   }
-  if (!feed.children.length) {
-    feed.innerHTML = `
-      <div class="private-empty">
-        <div class="private-empty-icon">💭</div>
-        <p>还没有消息</p>
-      </div>`;
+}
+
+// 先删除消息，再清理作者自己的孤立对象。未成功清理的对象不会向对方开放。
+async function deletePost(postId) {
+  if (deletingPosts.has(postId) || !currentUserId || !confirm('确定要删除这条消息吗？')) return;
+  const viewer = currentUserId;
+  const card = document.querySelector(`[data-post-id="${postId}"]`);
+  const button = card?.querySelector('.btn-delete-post');
+  deletingPosts.add(postId);
+  if (button) button.disabled = true;
+  try {
+    const { data: post, error: readError } = await supabase.from('private_posts')
+      .select('id, author_id, storage_path, storage_bucket').eq('id', postId).single();
+    if (readError) throw readError;
+    if (post.author_id !== viewer) throw new Error('只能删除自己发送的消息');
+    const { data: deleted, error } = await supabase.from('private_posts').delete().eq('id', postId).select('id');
+    if (error) throw error;
+    if (!deleted?.length) throw new Error('消息未删除，请刷新后重试');
+    let cleanupFailed = false;
+    if (post.storage_bucket === privateAttachmentBucket && post.storage_path) {
+      try {
+        const { data, error: removeError } = await supabase.storage.from(privateAttachmentBucket).remove([post.storage_path]);
+        cleanupFailed = !!removeError || !data?.length;
+      } catch (error) {
+        cleanupFailed = true;
+      }
+    }
+    if (viewer !== currentUserId) return;
+    card?.remove();
+    showMsg(document.getElementById('compose-msg'), cleanupFailed
+      ? '消息已删除，附件清理失败，请联系站主清理。' : '消息已删除', cleanupFailed ? 'error' : 'success');
+    const feed = document.getElementById('private-feed');
+    if (!feed.children.length && hasMorePosts) await loadPosts(true);
+    else if (!feed.children.length) feed.textContent = '还没有消息';
+  } catch (error) {
+    if (viewer === currentUserId) showMsg(document.getElementById('compose-msg'), `删除失败：${error.message}`, 'error');
+  } finally {
+    deletingPosts.delete(postId);
+    if (button) button.disabled = false;
   }
 }
 

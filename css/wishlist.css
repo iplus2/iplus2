@@ -1,0 +1,136 @@
+.wishlist-wrap {
+  max-width: 680px;
+  margin: 32px auto;
+}
+
+.wishlist-wrap [hidden] {
+  display: none;
+}
+
+.wishlist-heading {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.wishlist-heading h1 {
+  font-size: 1.6rem;
+  margin-bottom: 10px;
+}
+
+.wishlist-wrap p {
+  line-height: 1.7;
+}
+
+#wishlist-status,
+#wishlist-list-status {
+  margin-bottom: 16px;
+}
+
+.wishlist-heading p,
+.wishlist-hint,
+.wishlist-meta,
+.wishlist-toolbar p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.wishlist-card {
+  padding: 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow-wrap: anywhere;
+}
+
+.wishlist-card h2 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+
+.wishlist-card fieldset {
+  border: 0;
+  min-width: 0;
+}
+
+.wishlist-card label {
+  display: block;
+  margin: 12px 0 6px;
+}
+
+.wishlist-card select,
+.wishlist-card input,
+.wishlist-card textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 10px;
+  font: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+}
+
+.wishlist-card textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.wishlist-card .btn,
+.wishlist-card [role="status"] {
+  margin-top: 12px;
+}
+
+.wishlist-photo {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+  margin-top: 14px;
+  border-radius: 8px;
+}
+
+.wishlist-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 24px 0 14px;
+}
+
+.wishlist-toolbar .btn {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.wishlist-feed {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.wishlist-text {
+  white-space: pre-wrap;
+  margin-top: 12px;
+}
+
+.wishlist-state {
+  font-weight: 600;
+}
+
+.wishlist-card.is-completed {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.wishlist-card.is-completed .wishlist-meta {
+  color: #34734b;
+}
+
+.wishlist-error {
+  color: var(--error);
+}
+
+.wishlist-wrap button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

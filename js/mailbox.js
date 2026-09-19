@@ -96,7 +96,7 @@
       }
 
       el('content').hidden = false;
-      message('status', '所有日期均为上海时间。收到的照片会在寄出满 48 小时后出现在信箱中。');
+      message('status', '收到的信件会在寄出满 48 小时后出现在信箱中。');
       el('compose').addEventListener('submit', sendPhoto);
       el('file').addEventListener('change', previewPhoto);
       el('inbox').addEventListener('click', () => switchView('inbox'));
@@ -189,7 +189,7 @@
       savePending();
       el('file').value = '';
       clearPreview();
-      message('send-status', `照片已寄出，对方可在 ${formatDate(letter.deliver_at)}（上海时间）后看到。`);
+      message('send-status', `信件已寄出，对方可在 ${formatDate(letter.deliver_at)}后看到。`);
       switchView('sent');
     } catch (error) {
       if (userId === senderId) {
@@ -249,8 +249,8 @@
       if (letters.length) cursor = letters[letters.length - 1];
       hasMore = (data || []).length > pageSize;
       message('list-status', !el('feed').children.length
-        ? (currentView === 'inbox' ? '还没有到达的照片，过些时候再来看看。' : '还没有寄出的照片。')
-        : (hasMore ? '' : '已加载全部照片。'));
+        ? (currentView === 'inbox' ? '还没有到达的信件，过些时候再来看看。' : '还没有寄出的信件。')
+        : (hasMore ? '' : '已加载全部信件。'));
       el('more').textContent = '加载更多';
     } catch (error) {
       if (currentRequest !== requestId) return;
@@ -274,7 +274,7 @@
     heading.textContent = `${currentView === 'inbox' ? '来自' : '寄给'} ${names.get(personId) || '用户'}`;
     const dates = document.createElement('p');
     dates.className = 'mailbox-date';
-    dates.textContent = `寄出：${formatDate(letter.sent_at)} · ${currentView === 'inbox' ? '送达' : '对方可见'}：${formatDate(letter.deliver_at)}（上海时间）`;
+    dates.textContent = `寄出：${formatDate(letter.sent_at)} · ${currentView === 'inbox' ? '送达' : '对方可见'}：${formatDate(letter.deliver_at)}`;
     const image = document.createElement('img');
     image.className = 'mailbox-photo';
     image.alt = '信箱中的照片';

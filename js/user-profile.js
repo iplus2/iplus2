@@ -35,31 +35,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const newName = prompt('请输入新用户名：', currentName)?.trim();
     if (!newName || newName === currentName) return;
 
-    const { data: conflict } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('username', newName)
-      .neq('id', user.id)
-      .maybeSingle();
+    const button = document.getElementById('btn-change-name');
+    button.disabled = true;
+    try {
+      const { data: taken, error: checkError } = await supabase.rpc('is_username_taken', { p_username: newName });
+      if (checkError) throw checkError;
+      if (taken) {
+        alert('该用户名已被使用，请换一个');
+        return;
+      }
 
-    if (conflict) {
-      alert('该用户名已被使用，请换一个');
-      return;
+      // 唯一索引处理查重后发生的并发改名；返回记录确认更新确实生效。
+      const { data: updated, error } = await supabase.from('profiles')
+        .update({ username: newName }).eq('id', user.id).select('username').single();
+      if (error) throw error;
+      if (profile) profile.username = updated.username;
+      document.getElementById('user-username').textContent = updated.username;
+      const { error: metadataError } = await supabase.auth.updateUser({ data: { username: updated.username } });
+      alert(metadataError ? '用户名已更新；登录资料同步失败，重新登录后会读取最新用户名。' : '用户名已更新！');
+    } catch (error) {
+      alert(error.code === '23505' ? '该用户名已被使用，请换一个' : `更新失败：${error.message || '请稍后重试'}`);
+    } finally {
+      button.disabled = false;
     }
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ username: newName })
-      .eq('id', user.id);
-
-    if (error) {
-      alert(`更新失败: ${error.message}`);
-      return;
-    }
-
-    await supabase.auth.updateUser({ data: { username: newName } });
-    document.getElementById('user-username').textContent = newName;
-    alert('用户名已更新！');
   });
 
   document.getElementById('btn-change-pwd').addEventListener('click', () => {

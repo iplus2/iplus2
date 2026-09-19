@@ -243,6 +243,29 @@
   text-decoration: underline;
 }
 
+.btn-download-attachment {
+  color: var(--primary);
+  background: none;
+  border: 0;
+  padding: 4px 0;
+  font: inherit;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.btn-download-attachment:disabled,
+.btn-delete-post:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.private-attachment-hint {
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
 .private-post-actions {
   margin-top: 8px;
   display: flex;
